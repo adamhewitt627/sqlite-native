@@ -1,2 +1,4 @@
-# sqlite-native
-Lightweight C# wrapper around the native SQLite API.
+# sqlite-native  [![Build status](https://ci.appveyor.com/api/projects/status/duwn5reoawrc60yx?svg=true)](https://ci.appveyor.com/project/adamhewitt627/sqlite-native) [![NuGet Status](http://img.shields.io/nuget/v/SqliteNative.NET.svg?style=flat)](https://www.nuget.org/packages/SqliteNative.NET/)
+Lightweight C# wrapper around the native SQLite API. This does *not* provide any idiomatic C# API to make consuming a database feel at home in a .NET library. While those are nice, sometimes I've found it simpler in handling SQLite documentation to be able to map their API directly into your code. (It also means this can (in theory) stay up to date with SQLite releases by simply updating references.
+
+Right now, this only includes native runtimes for Windows and UWP. iOS, Android, and beyond are planned.
