@@ -32,9 +32,10 @@
   </Choose>
 
   <ItemGroup>
-    <Content Include="runtimes/**/*">
+    <None Include="runtimes/**/*">
+      <Pack>true</Pack>
       <PackagePath>runtimes/</PackagePath>
-    </Content>
+    </None>
   </ItemGroup>
 
   <Target Name="RestoreSQLite" AfterTargets="Restore">

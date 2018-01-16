@@ -18,7 +18,7 @@ try {
         Invoke-WebRequest https://sqlite.org/$year/sqlite-uwp-$version.vsix -OutFile sqlite.zip
         Expand-Archive .\sqlite.zip -Force
         Get-ChildItem sqlite\Redist\Retail | ForEach-Object {
-            $dest = New-Item "runtimes\win10-$($_.Name.ToLowerInvariant())\lib\uap10.0" -ItemType Directory -Force
+            $dest = New-Item "runtimes\win-$($_.Name.ToLowerInvariant())\lib\uap10.0" -ItemType Directory -Force
             Move-Item (Join-Path $_.FullName sqlite3.dll) -Destination $dest -Force
         }
     <##>}
