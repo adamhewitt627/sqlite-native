@@ -32,7 +32,11 @@
   </Choose>
 
   <ItemGroup>
-    <None Include="runtimes/**/*">
+    <None Include="bin\$(Configuration)\uap10.0\sqlite-native.dll;bin\$(Configuration)\uap10.0\sqlite-native.pri">
+      <Pack>true</Pack>
+      <PackagePath>runtimes/win10-arm/lib/uap10.0;runtimes/win10-x86/lib/uap10.0;runtimes/win10-x64/lib/uap10.0</PackagePath>
+    </None>
+    <None Include="runtimes\**\*">
       <Pack>true</Pack>
       <PackagePath>runtimes/</PackagePath>
     </None>
