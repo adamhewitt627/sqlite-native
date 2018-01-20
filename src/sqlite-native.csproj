@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard1.4;uap10.0</TargetFrameworks>
+    <TargetFramework>netstandard1.4</TargetFramework>
     <RootNamespace>SqliteNative</RootNamespace>
     <DefaultLanguage>en-US</DefaultLanguage>
     <LangVersion>latest</LangVersion>
@@ -12,24 +12,6 @@
     <PackageProjectUrl>https://github.com/adamhewitt627/sqlite-native</PackageProjectUrl>
     <PackageLicenseUrl>https://github.com/adamhewitt627/sqlite-native/blob/master/LICENSE</PackageLicenseUrl>
   </PropertyGroup>
-
-  <Choose>
-    <When Condition="'$(TargetFramework)' == 'uap10.0'">
-      <PropertyGroup>
-        <NugetTargetMoniker>UAP,Version=v10.0</NugetTargetMoniker>
-        <TargetPlatformIdentifier>UAP</TargetPlatformIdentifier>
-        <TargetPlatformVersion>10.0.16299.0</TargetPlatformVersion>
-        <TargetPlatformMinVersion>10.0.10240.0</TargetPlatformMinVersion>
-        <TargetFrameworkIdentifier>.NETCore</TargetFrameworkIdentifier>
-        <TargetFrameworkVersion>v5.0</TargetFrameworkVersion>
-        <DefineConstants>$(DefineConstants);UAP</DefineConstants>
-        <LanguageTargets>$(MSBuildExtensionsPath)\Microsoft\WindowsXaml\v$(VisualStudioVersion)\Microsoft.Windows.UI.Xaml.CSharp.targets</LanguageTargets>
-      </PropertyGroup>
-      <ItemGroup>
-        <PackageReference Include="Microsoft.NETCore.UniversalWindowsPlatform" Version="5.0.0" />
-      </ItemGroup>
-    </When>
-  </Choose>
 
   <ItemGroup>
     <None Include="bin\$(Configuration)\netstandard1.4\sqlite-native.dll">
