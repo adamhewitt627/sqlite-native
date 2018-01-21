@@ -13,7 +13,7 @@ namespace tests
         [DataRow("test.db", SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE)]
         public void TestOpen(string path, int flags)
         {
-            var err = sqlite3_open_v2(path, out var db, flags, IntPtr.Zero);
+            var err = sqlite3_open_v2(path, out var db, flags);
             try
             {
                 Assert.AreEqual(0, err);
