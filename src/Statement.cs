@@ -7,12 +7,14 @@ namespace SqliteNative
     public static partial class Sqlite3
     {
         [DllImport(SQLITE3)] private static extern int sqlite3_prepare16_v2(IntPtr db, [MarshalAs(UnmanagedType.LPWStr)] string pSql, int nBytes, out IntPtr stmt, out IntPtr ptrRemain);
-        public static int sqlite3_prepare16_v2(IntPtr db, [MarshalAs(UnmanagedType.LPWStr)] string pSql, int nBytes, out IntPtr stmt, out string remaining)
+        public static int sqlite3_prepare16_v2(IntPtr db, string pSql, int nBytes, out IntPtr stmt, out string remaining)
         {
             var err = sqlite3_prepare16_v2(db, pSql, nBytes, out stmt, out IntPtr ptrRemain);
             remaining = ptrRemain == IntPtr.Zero ? null : Marshal.PtrToStringUni(ptrRemain);
             return err;
         }
+        public static int sqlite3_prepare16_v2(IntPtr db, string pSql, out IntPtr stmt, out string remain)
+            => sqlite3_prepare16_v2(db, pSql, System.Text.Encoding.Unicode.GetByteCount(pSql), out stmt, out remain);
 
         [DllImport(SQLITE3)] public static extern int sqlite3_bind_null(IntPtr stmt, int index);
         [DllImport(SQLITE3)] public static extern int sqlite3_bind_int64(IntPtr stmt, int index, long value);
@@ -24,27 +26,16 @@ namespace SqliteNative
         [DllImport(SQLITE3)] private static extern int sqlite3_bind_text16(IntPtr stmt, int index, [MarshalAs(UnmanagedType.LPWStr)] string value, int nlen, IntPtr pvReserved);
         public static int sqlite3_bind_text16(IntPtr stmt, int index, string value) => sqlite3_bind_text16(stmt, index, value, -1, SQLITE_TRANSIENT);
 
-        [DllImport(SQLITE3)] private static extern int sqlite3_bind_parameter_index(IntPtr stmt, IntPtr strName);
-        public static int sqlite3_bind_parameter_index(IntPtr stmt, string strName)
-        {
-            var bytes = Encoding.UTF8.GetBytes(strName);
-            var ptr = IntPtr.Zero;
-            try
-            {
-                ptr = Marshal.AllocHGlobal(bytes.Length + 1);
-                Marshal.Copy(bytes, 0, ptr, bytes.Length);
-                Marshal.WriteByte(ptr, bytes.Length, 0);
-                return sqlite3_bind_parameter_index(stmt, ptr);
-            }
-            finally { Marshal.FreeHGlobal(ptr); }
-        }
-
-
+#region Bound Parameter Information
+        //https://sqlite.org/capi3ref.html#sqlite3_bind_parameter_count
+        [DllImport(SQLITE3)] public static extern int sqlite3_bind_parameter_count(IntPtr stmt);
+        [DllImport(SQLITE3)] public static extern int sqlite3_bind_parameter_index(IntPtr stmt, [MarshalAs(UnmanagedType.LPStr)] string strName);
         [DllImport(SQLITE3, EntryPoint = nameof(sqlite3_bind_parameter_name))] private static extern IntPtr bind_parameter_name(IntPtr stmt, int index);
         public static string sqlite3_bind_parameter_name(IntPtr stmt, int index)
             => bind_parameter_name(stmt, index) is IntPtr ptr && ptr != IntPtr.Zero ? Marshal.PtrToStringAnsi(ptr) : null;
+#endregion
 
-        [DllImport(SQLITE3)] public static extern int sqlite3_bind_parameter_count(IntPtr stmt);
+
         [DllImport(SQLITE3)] public static extern int sqlite3_step(IntPtr stmt);
         [DllImport(SQLITE3)] public static extern int sqlite3_reset(IntPtr stmt);
         [DllImport(SQLITE3)] public static extern int sqlite3_finalize(IntPtr stmt);
