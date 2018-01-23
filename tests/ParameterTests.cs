@@ -11,10 +11,8 @@ namespace SqliteNative.Tests
         public void TestParameterCount()
         {
             using (var db = new Database("CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)"))
-            {
-                Assert.AreEqual(SQLITE_OK, sqlite3_prepare16_v2(db, "SELECT * FROM t1 WHERE name = ? OR name = ?", out var stmt, out var remain));
+            using (var stmt = new Statement(db, "SELECT * FROM t1 WHERE name = ? OR name = ?; VACUUM", out var remain))
                 Assert.AreEqual(2, sqlite3_bind_parameter_count(stmt));
-            }
         }
 
         [DataTestMethod]
@@ -26,10 +24,8 @@ namespace SqliteNative.Tests
         public void TestParameterName(string parameter)
         {
             using (var db = new Database("CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)"))
-            {
-                Assert.AreEqual(SQLITE_OK, sqlite3_prepare16_v2(db, $"SELECT * FROM t1 WHERE name = {parameter}", out var stmt, out var remain));
+            using (var stmt = new Statement(db, $"SELECT * FROM t1 WHERE name = {parameter}", out var remain))
                 Assert.AreEqual(parameter=="?"?null:parameter, sqlite3_bind_parameter_name(stmt, 1));
-            }
         }
 
         [DataTestMethod]
@@ -40,10 +36,8 @@ namespace SqliteNative.Tests
         public void TestParameterIndex(string parameter)
         {
             using (var db = new Database("CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)"))
-            {
-                Assert.AreEqual(SQLITE_OK, sqlite3_prepare16_v2(db, $"SELECT * FROM t1 WHERE name = {parameter}", out var stmt, out var remain));
+            using (var stmt = new Statement(db, $"SELECT * FROM t1 WHERE name = {parameter}", out var remain))
                 Assert.AreEqual(1, sqlite3_bind_parameter_index(stmt, parameter));
-            }
         }
     }
 }

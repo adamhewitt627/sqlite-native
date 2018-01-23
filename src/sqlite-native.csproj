@@ -5,6 +5,7 @@
     <RootNamespace>SqliteNative</RootNamespace>
     <DefaultLanguage>en-US</DefaultLanguage>
     <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
     <Version>3.21.0</Version>
     <PackageId>SqliteNative.NET</PackageId>

@@ -6,22 +6,51 @@ namespace SqliteNative
 {
     public static partial class Sqlite3
     {
-        [DllImport(SQLITE3)] private static extern int sqlite3_prepare16_v2(IntPtr db, [MarshalAs(UnmanagedType.LPWStr)] string pSql, int nBytes, out IntPtr stmt, out IntPtr ptrRemain);
-        public static int sqlite3_prepare16_v2(IntPtr db, string pSql, int nBytes, out IntPtr stmt, out string remaining)
+        public static unsafe IntPtr ToUtf8(this string @string, out int byteCount)
         {
-            var err = sqlite3_prepare16_v2(db, pSql, nBytes, out stmt, out IntPtr ptrRemain);
-            remaining = ptrRemain == IntPtr.Zero ? null : Marshal.PtrToStringUni(ptrRemain);
-            return err;
+            byteCount = 0;
+            if (@string == null) return IntPtr.Zero;
+            IntPtr utf8 = IntPtr.Zero;
+            fixed (char* sqlString = @string)
+            {
+                byteCount = Encoding.UTF8.GetByteCount(@string);
+                utf8 = Marshal.AllocHGlobal(byteCount);
+                Encoding.UTF8.GetBytes(sqlString, @string.Length, (byte*)utf8.ToPointer(), byteCount);
+                return utf8;
+            }
         }
-        public static int sqlite3_prepare16_v2(IntPtr db, string pSql, out IntPtr stmt, out string remain)
-            => sqlite3_prepare16_v2(db, pSql, System.Text.Encoding.Unicode.GetByteCount(pSql), out stmt, out remain);
+        public static unsafe string FromUtf8(this IntPtr utf8)
+        {
+            if (@utf8 == IntPtr.Zero) return null;
+            var byteCount = 0;
+            while (Marshal.ReadByte(utf8, byteCount) != 0) byteCount++;
+            var charCount = Encoding.UTF8.GetCharCount((byte*)utf8.ToPointer(), byteCount);
+            var result = new string('\0', charCount);
+            fixed (char* resultPtr = result)
+                Encoding.UTF8.GetChars((byte*)utf8.ToPointer(), byteCount, resultPtr, charCount);
+            return result;
+        }
+
+
+        [DllImport(SQLITE3)] private static extern int sqlite3_prepare_v2(IntPtr db, IntPtr pSql, int nBytes, out IntPtr stmt, out IntPtr ptrRemain);
+        public static int sqlite3_prepare16_v2(IntPtr db, string pSql, out IntPtr stmt, out string remaining)
+        {
+            IntPtr utf8 = IntPtr.Zero;
+            try
+            {
+                utf8 = pSql.ToUtf8(out var nBytes);
+                var err = sqlite3_prepare_v2(db, utf8, nBytes, out stmt, out IntPtr ptrRemain);
+                remaining = ptrRemain.FromUtf8();
+                return err;
+            } finally { if (utf8 != IntPtr.Zero) Marshal.FreeHGlobal(utf8); }
+        }
 
         [DllImport(SQLITE3)] public static extern int sqlite3_bind_null(IntPtr stmt, int index);
         [DllImport(SQLITE3)] public static extern int sqlite3_bind_int64(IntPtr stmt, int index, long value);
         [DllImport(SQLITE3)] public static extern int sqlite3_bind_double(IntPtr stmt, int index, double value);
         [DllImport(SQLITE3)] private static extern int sqlite3_bind_blob(IntPtr stmt, int index, [MarshalAs(UnmanagedType.LPArray)] byte[] value, int byteCount, IntPtr pvReserved);
         public static int sqlite3_bind_blob(IntPtr stmt, int index, byte[] value, int byteCount) => sqlite3_bind_blob(stmt, index, value, byteCount, SQLITE_TRANSIENT);
-
+        public static int sqlite3_bind_blob(IntPtr stmt, int index, byte[] value) => sqlite3_bind_blob(stmt, index, value, value.Length);
 
         [DllImport(SQLITE3)] private static extern int sqlite3_bind_text16(IntPtr stmt, int index, [MarshalAs(UnmanagedType.LPWStr)] string value, int nlen, IntPtr pvReserved);
         public static int sqlite3_bind_text16(IntPtr stmt, int index, string value) => sqlite3_bind_text16(stmt, index, value, -1, SQLITE_TRANSIENT);
