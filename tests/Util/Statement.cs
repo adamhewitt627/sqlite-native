@@ -1,5 +1,6 @@
 using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using SqliteNative.Util;
 using static SqliteNative.Sqlite3;
 
 namespace SqliteNative.Tests.Util

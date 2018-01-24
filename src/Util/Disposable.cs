@@ -1,6 +1,6 @@
 using System;
 
-namespace SqliteNative.Tests.Util
+namespace SqliteNative.Util
 {
     public abstract class Disposable : IDisposable
     {

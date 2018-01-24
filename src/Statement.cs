@@ -1,49 +1,51 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Text;
+using SqliteNative.Util;
 
 namespace SqliteNative
 {
     public static partial class Sqlite3
     {
-        public static unsafe IntPtr ToUtf8(this string @string, out int byteCount)
-        {
-            byteCount = 0;
-            if (@string == null) return IntPtr.Zero;
-            IntPtr utf8 = IntPtr.Zero;
-            fixed (char* sqlString = @string)
-            {
-                byteCount = Encoding.UTF8.GetByteCount(@string);
-                utf8 = Marshal.AllocHGlobal(byteCount);
-                Encoding.UTF8.GetBytes(sqlString, @string.Length, (byte*)utf8.ToPointer(), byteCount);
-                return utf8;
-            }
-        }
-        public static unsafe string FromUtf8(this IntPtr utf8)
-        {
-            if (@utf8 == IntPtr.Zero) return null;
-            var byteCount = 0;
-            while (Marshal.ReadByte(utf8, byteCount) != 0) byteCount++;
-            var charCount = Encoding.UTF8.GetCharCount((byte*)utf8.ToPointer(), byteCount);
-            var result = new string('\0', charCount);
-            fixed (char* resultPtr = result)
-                Encoding.UTF8.GetChars((byte*)utf8.ToPointer(), byteCount, resultPtr, charCount);
-            return result;
-        }
 
-
-        [DllImport(SQLITE3)] private static extern int sqlite3_prepare_v2(IntPtr db, IntPtr pSql, int nBytes, out IntPtr stmt, out IntPtr ptrRemain);
-        public static int sqlite3_prepare16_v2(IntPtr db, string pSql, out IntPtr stmt, out string remaining)
+#region Compiling An SQL Statement
+        //https://sqlite.org/capi3ref.html#sqlite3_prepare
+        [DllImport(SQLITE3)] private static extern int sqlite3_prepare(IntPtr db, IntPtr pSql, int nBytes, out IntPtr stmt, out IntPtr ptrRemain);
+        public static int sqlite3_prepare(IntPtr db, string pSql, out IntPtr stmt, out string remaining)
         {
-            IntPtr utf8 = IntPtr.Zero;
-            try
+            using (var utf8 = new Utf8String(pSql))
             {
-                utf8 = pSql.ToUtf8(out var nBytes);
-                var err = sqlite3_prepare_v2(db, utf8, nBytes, out stmt, out IntPtr ptrRemain);
+                var err = sqlite3_prepare(db, utf8, utf8.Length, out stmt, out IntPtr ptrRemain);
                 remaining = ptrRemain.FromUtf8();
                 return err;
-            } finally { if (utf8 != IntPtr.Zero) Marshal.FreeHGlobal(utf8); }
+            }
         }
+        public static int sqlite3_prepare16(IntPtr db, string pSql, out IntPtr stmt, out string remaining) => sqlite3_prepare(db, pSql, out stmt, out remaining);
+
+        [DllImport(SQLITE3)] private static extern int sqlite3_prepare_v2(IntPtr db, IntPtr pSql, int nBytes, out IntPtr stmt, out IntPtr ptrRemain);
+        public static int sqlite3_prepare_v2(IntPtr db, string pSql, out IntPtr stmt, out string remaining)
+        {
+            using (var utf8 = new Utf8String(pSql))
+            {
+                var err = sqlite3_prepare_v2(db, utf8, utf8.Length, out stmt, out IntPtr ptrRemain);
+                remaining = ptrRemain.FromUtf8();
+                return err;
+            }
+        }
+        public static int sqlite3_prepare16_v2(IntPtr db, string pSql, out IntPtr stmt, out string remaining) => sqlite3_prepare_v2(db, pSql, out stmt, out remaining);
+
+        [DllImport(SQLITE3)] private static extern int sqlite3_prepare_v3(IntPtr db, IntPtr pSql, int nBytes, uint prepFlags, out IntPtr stmt, out IntPtr ptrRemain);
+        public static int sqlite3_prepare_v3(IntPtr db, string pSql, uint prepFlags, out IntPtr stmt, out string remaining)
+        {
+            using (var utf8 = new Utf8String(pSql))
+            {
+                var err = sqlite3_prepare_v3(db, utf8, utf8.Length, prepFlags, out stmt, out IntPtr ptrRemain);
+                remaining = ptrRemain.FromUtf8();
+                return err;
+            }
+        }
+        public static int sqlite3_prepare16_v3(IntPtr db, string pSql, uint prepFlags, out IntPtr stmt, out string remaining) => sqlite3_prepare_v3(db, pSql, prepFlags, out stmt, out remaining);
+#endregion
 
         [DllImport(SQLITE3)] public static extern int sqlite3_bind_null(IntPtr stmt, int index);
         [DllImport(SQLITE3)] public static extern int sqlite3_bind_int64(IntPtr stmt, int index, long value);
