@@ -9,7 +9,7 @@ namespace SqliteNative
     {
 
 #region Compiling An SQL Statement
-        //https://sqlite.org/capi3ref.html#sqlite3_prepare
+        //https://sqlite.org/c3ref/prepare.html
         [DllImport(SQLITE3)] private static extern int sqlite3_prepare(IntPtr db, IntPtr pSql, int nBytes, out IntPtr stmt, out IntPtr ptrRemain);
         public static int sqlite3_prepare(IntPtr db, string pSql, out IntPtr stmt, out string remaining)
         {
