@@ -89,7 +89,7 @@ namespace SqliteNative
 #region Result Values From A Query
         //https://sqlite.org/c3ref/column_blob.html
         [DllImport(SQLITE3, EntryPoint = nameof(sqlite3_column_blob))] private static extern IntPtr column_blob(IntPtr stmt, int index);
-        public static byte[] c(IntPtr stmt, int index)
+        public static byte[] sqlite3_column_blob(IntPtr stmt, int index)
         {
             var bytePtr = column_blob(stmt, index);
             if (bytePtr == IntPtr.Zero) return null;
