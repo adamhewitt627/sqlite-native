@@ -47,6 +47,8 @@ namespace SqliteNative
         public static int sqlite3_prepare16_v3(IntPtr db, string pSql, uint prepFlags, out IntPtr stmt, out string remaining) => sqlite3_prepare_v3(db, pSql, prepFlags, out stmt, out remaining);
 #endregion
 
+#region Binding Values To Prepared Statements
+        //https://sqlite.org/capi3ref.html#sqlite3_bind_blob
         [DllImport(SQLITE3)] public static extern int sqlite3_bind_null(IntPtr stmt, int index);
         [DllImport(SQLITE3)] public static extern int sqlite3_bind_int64(IntPtr stmt, int index, long value);
         [DllImport(SQLITE3)] public static extern int sqlite3_bind_double(IntPtr stmt, int index, double value);
@@ -54,8 +56,14 @@ namespace SqliteNative
         public static int sqlite3_bind_blob(IntPtr stmt, int index, byte[] value, int byteCount) => sqlite3_bind_blob(stmt, index, value, byteCount, SQLITE_TRANSIENT);
         public static int sqlite3_bind_blob(IntPtr stmt, int index, byte[] value) => sqlite3_bind_blob(stmt, index, value, value.Length);
 
-        [DllImport(SQLITE3)] private static extern int sqlite3_bind_text16(IntPtr stmt, int index, [MarshalAs(UnmanagedType.LPWStr)] string value, int nlen, IntPtr pvReserved);
-        public static int sqlite3_bind_text16(IntPtr stmt, int index, string value) => sqlite3_bind_text16(stmt, index, value, -1, SQLITE_TRANSIENT);
+        [DllImport(SQLITE3, EntryPoint = nameof(sqlite3_bind_text))] private static extern int sqlite3_bind_text(IntPtr stmt, int index, IntPtr value, int nlen, IntPtr pvReserved);
+        public static int sqlite3_bind_text(IntPtr stmt, int index, string value)
+        {
+            using (var utf8 = new Utf8String(value))
+                return sqlite3_bind_text(stmt, index, utf8, utf8.Length, SQLITE_TRANSIENT);
+        }
+        public static int sqlite3_bind_text16(IntPtr stmt, int index, string value) => sqlite3_bind_text(stmt, index, value);
+#endregion
 
 #region Bound Parameter Information
         //https://sqlite.org/capi3ref.html#sqlite3_bind_parameter_count
