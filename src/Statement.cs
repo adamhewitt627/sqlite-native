@@ -58,7 +58,7 @@ namespace SqliteNative
         public static int sqlite3_bind_text16(IntPtr stmt, int index, string value) => sqlite3_bind_text16(stmt, index, value, -1, SQLITE_TRANSIENT);
 
 #region Bound Parameter Information
-        //https://sqlite.org/capi3ref.html#sqlite3_bind_parameter_count
+        //http://www.sqlite.org/c3ref/bind_parameter_count.html
         [DllImport(SQLITE3)] public static extern int sqlite3_bind_parameter_count(IntPtr stmt);
         [DllImport(SQLITE3)] public static extern int sqlite3_bind_parameter_index(IntPtr stmt, [MarshalAs(UnmanagedType.LPStr)] string strName);
         [DllImport(SQLITE3, EntryPoint = nameof(sqlite3_bind_parameter_name))] private static extern IntPtr bind_parameter_name(IntPtr stmt, int index);
@@ -74,22 +74,22 @@ namespace SqliteNative
 
 
 #region Column Names In A Result Set
-        //https://sqlite.org/capi3ref.html#sqlite3_column_name
+        //https://sqlite.org/c3ref/column_name.html
         [DllImport(SQLITE3, EntryPoint = nameof(sqlite3_column_name16))] private static extern IntPtr column_name16(IntPtr stmt, int index);
-        public static string sqlite3_column_name(IntPtr stmt, int index) => Marshal.PtrToStringUni(column_name16(stmt, index));
-        public static string sqlite3_column_name16(IntPtr stmt, int index) => sqlite3_column_name16(stmt, index);
+        public static string sqlite3_column_name(IntPtr stmt, int index) => column_name16(stmt, index).FromUtf8();
+        public static string sqlite3_column_name16(IntPtr stmt, int index) => sqlite3_column_name(stmt, index);
 #endregion
 
 #region Determine If An SQL Statement Is Complete
-        //https://sqlite.org/capi3ref.html#sqlite3_complete
+        //https://sqlite.org/c3ref/complete.html
         [DllImport(SQLITE3)] public static extern bool sqlite3_complete([MarshalAs(UnmanagedType.LPStr)]string sql);
         [DllImport(SQLITE3)] public static extern bool sqlite3_complete16([MarshalAs(UnmanagedType.LPWStr)]string sql);
 #endregion
 
 #region Result Values From A Query
-        //https://sqlite.org/capi3ref.html#sqlite3_column_blob
+        //https://sqlite.org/c3ref/column_blob.html
         [DllImport(SQLITE3, EntryPoint = nameof(sqlite3_column_blob))] private static extern IntPtr column_blob(IntPtr stmt, int index);
-        public static byte[] sqlite3_column_blob(IntPtr stmt, int index)
+        public static byte[] c(IntPtr stmt, int index)
         {
             var bytePtr = column_blob(stmt, index);
             if (bytePtr == IntPtr.Zero) return null;
