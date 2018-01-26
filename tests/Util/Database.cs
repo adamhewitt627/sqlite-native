@@ -11,7 +11,7 @@ namespace SqliteNative.Tests.Util
 
         public Database(params string[] statements)
         {
-            sqlite3_open_v2(":memory:", out _db, SQLITE_OPEN_READWRITE);
+            Assert.AreEqual(SQLITE_OK, sqlite3_open_v2(":memory:", out _db, SQLITE_OPEN_READWRITE));
             Execute(statements);
         }
         public static implicit operator IntPtr(Database database) => database._db;
