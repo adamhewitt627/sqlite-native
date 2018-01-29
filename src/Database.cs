@@ -53,6 +53,17 @@ namespace SqliteNative
         public static string sqlite3_errstr(IntPtr db) => errstr(db).FromUtf8();
 #endregion
 
+#region Commit And Rollback Notification Callbacks
+        //https://sqlite.org/c3ref/commit_hook.html
+        public delegate int CommitHook(IntPtr context);
+        [DllImport(SQLITE3)] private static extern IntPtr sqlite3_commit_hook(IntPtr db, IntPtr callback, IntPtr context);
+        public static IntPtr sqlite3_commit_hook(IntPtr db, Callback<CommitHook> callback, IntPtr context) => sqlite3_commit_hook(db, (IntPtr)callback, context);
+        
+        public delegate void RollbackHook(IntPtr context);
+        [DllImport(SQLITE3)] private static extern IntPtr sqlite3_rollback_hook(IntPtr db, IntPtr callback, IntPtr context);
+        public static IntPtr sqlite3_rollback_hook(IntPtr db, Callback<RollbackHook> callback, IntPtr context) => sqlite3_rollback_hook(db, (IntPtr)callback, context);
+#endregion
+
 #region Data Change Notification Callbacks
         //https://sqlite.org/c3ref/update_hook.html
         public delegate void UpdateHook(IntPtr context, int change, IntPtr dbName, IntPtr tableName, long rowid);

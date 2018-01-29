@@ -59,20 +59,69 @@ namespace tests
         public void CallsUpdateCallback()
         {
             var called = false;
+            var ctx = (IntPtr)(42);
             using (var db = new Database("CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)"))
             using (var cb = new Callback<UpdateHook>(updateHook))
             {
-                Assert.AreEqual(IntPtr.Zero, sqlite3_update_hook(db, cb, IntPtr.Zero));
-                using (var stmt = new Statement(db, "INSERT INTO t1(name) VALUES('fizzbuzz')", out var remain))
-                    Assert.AreEqual(SQLITE_DONE, sqlite3_step(stmt));
+                Assert.AreEqual(IntPtr.Zero, sqlite3_update_hook(db, cb, ctx));
+                Assert.AreEqual(SQLITE_OK, sqlite3_exec(db, "INSERT INTO t1(name) VALUES('fizzbuzz')"));
             }
             Assert.IsTrue(called);
 
             void updateHook(IntPtr context, int change, IntPtr dbName, IntPtr tableName, long rowid)
             {
                 called = true;
+                Assert.AreEqual(ctx, context);
                 Assert.AreEqual("main", dbName.FromUtf8());
                 Assert.AreEqual("t1", tableName.FromUtf8());
+            }
+        }
+
+        [TestMethod]
+        public void CallsCommit()
+        {
+            var called = false;
+            var ctx = (IntPtr)(42);
+            using (var db = new Database())
+            using (var cb = new Callback<CommitHook>(commitHook))
+            {
+                Assert.AreEqual(IntPtr.Zero, sqlite3_commit_hook(db, cb, ctx));
+                Assert.AreEqual(SQLITE_OK, sqlite3_exec(db, string.Join(";", "BEGIN",
+                    "CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)",
+                    "COMMIT")));
+            }
+            Assert.IsTrue(called);
+
+            int commitHook(IntPtr context)
+            {
+                called = true;
+                Assert.AreEqual(ctx, context);
+                return 0;
+            }
+        }
+
+        [TestMethod]
+        public void CallsRollback()
+        {
+            var called = false;
+            var ctx = (IntPtr)(42);
+            using (var db = new Database())
+            using (var commit = new Callback<CommitHook>(commitHook))
+            using (var rollback = new Callback<RollbackHook>(rollbackHook))
+            {
+                Assert.AreEqual(IntPtr.Zero, sqlite3_commit_hook(db, commit, ctx));
+                Assert.AreEqual(IntPtr.Zero, sqlite3_rollback_hook(db, rollback, ctx));
+                sqlite3_exec(db, string.Join(";", "BEGIN",
+                    "CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)",
+                    "COMMIT"));
+            }
+            Assert.IsTrue(called);
+
+            int commitHook(IntPtr context) => 7;
+            void rollbackHook(IntPtr context)
+            {
+                called = true;
+                Assert.AreEqual(ctx, context);
             }
         }
     }
