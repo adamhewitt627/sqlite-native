@@ -27,8 +27,8 @@ namespace SqliteNative
         [DllImport(SQLITE3)] public static extern int sqlite3_close(IntPtr db);
         [DllImport(SQLITE3)] public static extern int sqlite3_close_v2(IntPtr db);
 
-        [DllImport(SQLITE3)] public static extern int sqlite3_total_changes(IntPtr db);
         [DllImport(SQLITE3)] public static extern int sqlite3_changes(IntPtr db);
+        [DllImport(SQLITE3)] public static extern int sqlite3_total_changes(IntPtr db);
         [DllImport(SQLITE3)] public static extern long sqlite3_last_insert_rowid(IntPtr db);
         [DllImport(SQLITE3)] public static extern int sqlite3_busy_timeout(IntPtr db, int ms);
 
@@ -51,6 +51,13 @@ namespace SqliteNative
         public static string sqlite3_errmsg16(IntPtr db) => sqlite3_errmsg(db);
         [DllImport(SQLITE3, EntryPoint = nameof(sqlite3_errstr))] private static extern IntPtr errstr(IntPtr db);
         public static string sqlite3_errstr(IntPtr db) => errstr(db).FromUtf8();
+#endregion
+
+#region Data Change Notification Callbacks
+        //https://sqlite.org/c3ref/update_hook.html
+        public delegate void UpdateHook(IntPtr context, int change, IntPtr dbName, IntPtr tableName, long rowid);
+        [DllImport(SQLITE3)] private static extern IntPtr sqlite3_update_hook(IntPtr db, IntPtr callback, IntPtr context);
+        public static IntPtr sqlite3_update_hook(IntPtr db, Callback<UpdateHook> callback, IntPtr context) => sqlite3_update_hook(db, (IntPtr)callback, context);
 #endregion
     }
 }

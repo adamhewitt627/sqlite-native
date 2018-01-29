@@ -4,7 +4,7 @@ using System.Text;
 
 namespace SqliteNative.Util
 {
-    internal static class Extensions
+    public static class Extensions
     {
         public static unsafe IntPtr ToUtf8(this string @string, out int byteCount)
         {

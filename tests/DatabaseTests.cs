@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SqliteNative.Tests.Util;
+using SqliteNative.Util;
 using static SqliteNative.Sqlite3;
 
 namespace tests
@@ -51,6 +52,27 @@ namespace tests
                     Assert.AreEqual(SQLITE_ROW, sqlite3_step(stmt));
                     Assert.AreEqual("flibbety", sqlite3_column_text(stmt, 1));
                 }
+            }
+        }
+
+        [TestMethod]
+        public void CallsUpdateCallback()
+        {
+            var called = false;
+            using (var db = new Database("CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)"))
+            using (var cb = new Callback<UpdateHook>(updateHook))
+            {
+                Assert.AreEqual(IntPtr.Zero, sqlite3_update_hook(db, cb, IntPtr.Zero));
+                using (var stmt = new Statement(db, "INSERT INTO t1(name) VALUES('fizzbuzz')", out var remain))
+                    Assert.AreEqual(SQLITE_DONE, sqlite3_step(stmt));
+            }
+            Assert.IsTrue(called);
+
+            void updateHook(IntPtr context, int change, IntPtr dbName, IntPtr tableName, long rowid)
+            {
+                called = true;
+                Assert.AreEqual("main", dbName.FromUtf8());
+                Assert.AreEqual("t1", tableName.FromUtf8());
             }
         }
     }
