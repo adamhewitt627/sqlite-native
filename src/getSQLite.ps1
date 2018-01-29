@@ -1,7 +1,7 @@
 try {
     Push-Location $PSScriptRoot
-    $year = "2017"
-    $version = "3210000"
+    $year = "2018"
+    $version = "3220000"
 
     &{ #<# Win32
         function Get-Win32 ($win, $arch) {
