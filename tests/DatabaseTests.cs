@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using SqliteNative.Tests.Util;
 using static SqliteNative.Sqlite3;
 
 namespace tests
@@ -37,5 +38,20 @@ namespace tests
             } finally { sqlite3_close(db); }
         }
 
+        [TestMethod]
+        public void ExecutesSQL()
+        {
+            using (var db = new Database())
+            {
+                Assert.AreEqual(SQLITE_OK, sqlite3_exec(db, 
+                    "CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT);\n"
+                    + "INSERT INTO t1(name) VALUES('flibbety')"));
+                using (var stmt = new Statement(db, "SELECT * FROM t1", out var remain))
+                {
+                    Assert.AreEqual(SQLITE_ROW, sqlite3_step(stmt));
+                    Assert.AreEqual("flibbety", sqlite3_column_text(stmt, 1));
+                }
+            }
+        }
     }
 }

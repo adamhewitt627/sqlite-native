@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SqliteNative.Tests.Util;
 using static SqliteNative.Sqlite3;
@@ -38,6 +40,73 @@ namespace SqliteNative.Tests
             using (var db = new Database("CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)"))
             using (var stmt = new Statement(db, $"SELECT * FROM t1 WHERE name = {parameter}", out var remain))
                 Assert.AreEqual(1, sqlite3_bind_parameter_index(stmt, parameter));
+        }
+
+        [TestMethod]
+        public void TestColumnCount()
+        {
+            using (var db = new Database("CREATE TABLE t1(id INTEGER PRIMARY KEY, data blob)"))
+            using (var stmt = new Statement(db, $"SELECT * FROM t1", out var remain))
+                Assert.AreEqual(2, sqlite3_column_count(stmt));
+        }
+
+        [TestMethod]
+        public void TestBindText()
+        {
+            using (var db = new Database("CREATE TABLE t1(id INTEGER PRIMARY KEY, data TEXT)"))
+            {
+                const string flibbety = "flibbetty gibbett";
+                using (var stmt = new Statement(db, $"INSERT INTO t1(data) VALUES(?)", out var remain))
+                {
+                    Assert.AreEqual(SQLITE_OK, sqlite3_bind_text16(stmt, 1, flibbety));
+                    Assert.AreEqual(SQLITE_DONE, sqlite3_step(stmt));
+                }
+                using (var stmt = new Statement(db, $"SELECT data FROM t1", out var remain))
+                {
+                    Assert.AreEqual(SQLITE_ROW, sqlite3_step(stmt));
+                    Assert.AreEqual(flibbety, sqlite3_column_text16(stmt, 0));
+                }
+            }
+        }
+
+        [TestMethod]
+        public void TestBindBlob()
+        {
+            using (var db = new Database("CREATE TABLE t1(id INTEGER PRIMARY KEY, data blob)"))
+            {
+                var blob = new byte[42];
+                new Random().NextBytes(blob);
+
+                using (var stmt = new Statement(db, $"INSERT INTO t1(data) VALUES(?)", out var remain))
+                {
+                    Assert.AreEqual(SQLITE_OK, sqlite3_bind_blob(stmt, 1, blob));
+                    Assert.AreEqual(SQLITE_DONE, sqlite3_step(stmt));
+                }
+                using (var stmt = new Statement(db, $"SELECT data FROM t1", out var remain))
+                {
+                    Assert.AreEqual(SQLITE_ROW, sqlite3_step(stmt));
+                    var actual = sqlite3_column_blob(stmt, 0);
+                    Assert.IsTrue(blob.SequenceEqual(actual));
+                }
+            }
+        }
+
+        [TestMethod]
+        public void TestEmptyBlob()
+        {
+            using (var db = new Database("CREATE TABLE t1(id INTEGER PRIMARY KEY, data blob)"))
+            {
+                using (var stmt = new Statement(db, $"INSERT INTO t1(data) VALUES(?)", out var remain))
+                {
+                    Assert.AreEqual(SQLITE_OK, sqlite3_bind_blob(stmt, 1, new byte[0]));
+                    Assert.AreEqual(SQLITE_DONE, sqlite3_step(stmt));
+                }
+                using (var stmt = new Statement(db, $"SELECT data FROM t1", out var remain))
+                {
+                    Assert.AreEqual(SQLITE_ROW, sqlite3_step(stmt));
+                    Assert.IsNull(sqlite3_column_blob(stmt, 0));
+                }
+            }
         }
     }
 }

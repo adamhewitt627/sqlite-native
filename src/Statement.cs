@@ -7,7 +7,6 @@ namespace SqliteNative
 {
     public static partial class Sqlite3
     {
-
 #region Compiling An SQL Statement
         //https://sqlite.org/c3ref/prepare.html
         [DllImport(SQLITE3)] private static extern int sqlite3_prepare(IntPtr db, IntPtr pSql, int nBytes, out IntPtr stmt, out IntPtr ptrRemain);
@@ -47,14 +46,28 @@ namespace SqliteNative
         public static int sqlite3_prepare16_v3(IntPtr db, string pSql, uint prepFlags, out IntPtr stmt, out string remaining) => sqlite3_prepare_v3(db, pSql, prepFlags, out stmt, out remaining);
 #endregion
 
+#region Statement lifecycle
+        //https://sqlite.org/c3ref/step.html
+        [DllImport(SQLITE3)] public static extern int sqlite3_step(IntPtr stmt);
+        //https://sqlite.org/c3ref/reset.html
+        [DllImport(SQLITE3)] public static extern int sqlite3_reset(IntPtr stmt);
+        //https://sqlite.org/c3ref/finalize.html
+        [DllImport(SQLITE3)] public static extern int sqlite3_finalize(IntPtr stmt);
+#endregion
+
 #region Binding Values To Prepared Statements
-        //https://sqlite.org/capi3ref.html#sqlite3_bind_blob
+        //https://sqlite.org/c3ref/bind_blob.html
+        [DllImport(SQLITE3)] private unsafe static extern int sqlite3_bind_blob(IntPtr stmt, int index, byte* value, int byteCount, IntPtr pvReserved);
+        public unsafe static int sqlite3_bind_blob(IntPtr stmt, int index, byte[] value, int byteCount)
+        {
+            fixed (byte* data = value)
+                return sqlite3_bind_blob(stmt, index, data, byteCount, SQLITE_TRANSIENT);
+        }
+        public static int sqlite3_bind_blob(IntPtr stmt, int index, byte[] value) => sqlite3_bind_blob(stmt, index, value, value.Length);
+
         [DllImport(SQLITE3)] public static extern int sqlite3_bind_null(IntPtr stmt, int index);
         [DllImport(SQLITE3)] public static extern int sqlite3_bind_int64(IntPtr stmt, int index, long value);
         [DllImport(SQLITE3)] public static extern int sqlite3_bind_double(IntPtr stmt, int index, double value);
-        [DllImport(SQLITE3)] private static extern int sqlite3_bind_blob(IntPtr stmt, int index, [MarshalAs(UnmanagedType.LPArray)] byte[] value, int byteCount, IntPtr pvReserved);
-        public static int sqlite3_bind_blob(IntPtr stmt, int index, byte[] value, int byteCount) => sqlite3_bind_blob(stmt, index, value, byteCount, SQLITE_TRANSIENT);
-        public static int sqlite3_bind_blob(IntPtr stmt, int index, byte[] value) => sqlite3_bind_blob(stmt, index, value, value.Length);
 
         [DllImport(SQLITE3, EntryPoint = nameof(sqlite3_bind_text))] private static extern int sqlite3_bind_text(IntPtr stmt, int index, IntPtr value, int nlen, IntPtr pvReserved);
         public static int sqlite3_bind_text(IntPtr stmt, int index, string value)
@@ -68,18 +81,20 @@ namespace SqliteNative
 #region Bound Parameter Information
         //http://www.sqlite.org/c3ref/bind_parameter_count.html
         [DllImport(SQLITE3)] public static extern int sqlite3_bind_parameter_count(IntPtr stmt);
-        [DllImport(SQLITE3)] public static extern int sqlite3_bind_parameter_index(IntPtr stmt, [MarshalAs(UnmanagedType.LPStr)] string strName);
+        [DllImport(SQLITE3)] public static extern int sqlite3_bind_parameter_index(IntPtr stmt, IntPtr strName);
+        public static int sqlite3_bind_parameter_index(IntPtr stmt, string strName)
+        {
+            using (var utf8 = new Utf8String(strName))
+                return sqlite3_bind_parameter_index(stmt, utf8);
+        }
         [DllImport(SQLITE3, EntryPoint = nameof(sqlite3_bind_parameter_name))] private static extern IntPtr bind_parameter_name(IntPtr stmt, int index);
-        public static string sqlite3_bind_parameter_name(IntPtr stmt, int index)
-            => bind_parameter_name(stmt, index) is IntPtr ptr && ptr != IntPtr.Zero ? Marshal.PtrToStringAnsi(ptr) : null;
+        public static string sqlite3_bind_parameter_name(IntPtr stmt, int index) => bind_parameter_name(stmt, index).FromUtf8();
 #endregion
 
-
-        [DllImport(SQLITE3)] public static extern int sqlite3_step(IntPtr stmt);
-        [DllImport(SQLITE3)] public static extern int sqlite3_reset(IntPtr stmt);
-        [DllImport(SQLITE3)] public static extern int sqlite3_finalize(IntPtr stmt);
+#region Number Of Columns In A Result Set
+        //https://sqlite.org/c3ref/column_count.html
         [DllImport(SQLITE3)] public static extern int sqlite3_column_count(IntPtr stmt);
-
+#endregion
 
 #region Column Names In A Result Set
         //https://sqlite.org/c3ref/column_name.html
@@ -90,28 +105,33 @@ namespace SqliteNative
 
 #region Determine If An SQL Statement Is Complete
         //https://sqlite.org/c3ref/complete.html
-        [DllImport(SQLITE3)] public static extern bool sqlite3_complete([MarshalAs(UnmanagedType.LPStr)]string sql);
-        [DllImport(SQLITE3)] public static extern bool sqlite3_complete16([MarshalAs(UnmanagedType.LPWStr)]string sql);
+        [DllImport(SQLITE3, EntryPoint = nameof(sqlite3_complete))] private static extern bool sqlite3_complete(IntPtr sql);
+        public static bool sqlite3_complete(string sql)
+        {
+            using (var utf8 = new Utf8String(sql)) 
+                return sqlite3_complete(utf8);
+        }
+        public static bool sqlite3_complete16(string sql) => sqlite3_complete(sql);
 #endregion
 
 #region Result Values From A Query
         //https://sqlite.org/c3ref/column_blob.html
         [DllImport(SQLITE3, EntryPoint = nameof(sqlite3_column_blob))] private static extern IntPtr column_blob(IntPtr stmt, int index);
-        public static byte[] sqlite3_column_blob(IntPtr stmt, int index)
+        public unsafe static byte[] sqlite3_column_blob(IntPtr stmt, int index)
         {
-            var bytePtr = column_blob(stmt, index);
-            if (bytePtr == IntPtr.Zero) return null;
+            var source = column_blob(stmt, index);
+            if (source == IntPtr.Zero) return null; //SQLite returns NULL for a zero-length blob
 
             var byteCount = sqlite3_column_bytes(stmt, index);
             var rv = new byte[byteCount];
-            Marshal.Copy(bytePtr, rv, 0, byteCount);
+            fixed(byte* dest = rv) Buffer.MemoryCopy(source.ToPointer(), dest, byteCount, byteCount);
             return rv;
         }
         [DllImport(SQLITE3)] public static extern double sqlite3_column_double(IntPtr stmt, int index);
         [DllImport(SQLITE3)] public static extern int sqlite3_column_int(IntPtr stmt, int index);
         [DllImport(SQLITE3)] public static extern long sqlite3_column_int64(IntPtr stmt, int index);
-        [DllImport(SQLITE3, EntryPoint = nameof(sqlite3_column_text16))] private static extern IntPtr column_text16(IntPtr stmt, int index);
-        public static string sqlite3_column_text(IntPtr stmt, int index) => Marshal.PtrToStringUni(column_text16(stmt, index));
+        [DllImport(SQLITE3, EntryPoint = nameof(sqlite3_column_text))] private static extern IntPtr column_text(IntPtr stmt, int index);
+        public static string sqlite3_column_text(IntPtr stmt, int index) => column_text(stmt, index).FromUtf8();
         public static string sqlite3_column_text16(IntPtr stmt, int index) => sqlite3_column_text(stmt, index);
         [DllImport(SQLITE3)] public static extern IntPtr sqlite3_column_value(IntPtr stmt, int index);
         [DllImport(SQLITE3)] public static extern int sqlite3_column_bytes(IntPtr stmt, int index);
