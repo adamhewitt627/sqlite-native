@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SqliteNative.Tests.Util;
 using SqliteNative.Util;
@@ -122,6 +124,42 @@ namespace tests
             {
                 called = true;
                 Assert.AreEqual(ctx, context);
+            }
+        }
+
+        [TestMethod, Ignore]    //TODO - still haven't gotten this to work
+        public async Task InvokesBusyHandler()
+        {
+            var called = false;
+            var ctx = (IntPtr)(42);
+            const string path = "file:memdb42?mode=memory&cache=shared";
+            const int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_URI | SQLITE_OPEN_FULLMUTEX;
+            using (var callback = new Callback<BusyHandler>(busyHandler))
+            {
+                Assert.AreEqual(SQLITE_OK, sqlite3_open_v2(path, out var db1, flags));
+                Assert.AreEqual(SQLITE_OK, sqlite3_exec(db1, "CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)"));
+                sqlite3_busy_handler(db1, callback, ctx);
+
+                ManualResetEvent mre1 = new ManualResetEvent(true), mre2 = new ManualResetEvent(false);
+                Task task1 = Task.Run(() => {
+                    Assert.AreEqual(SQLITE_OK, sqlite3_exec(db1, "BEGIN TRANSACTION; INSERT INTO t1(name) VALUES('fizzbuzz')"));
+                    mre2.Set();
+                }), task2 = Task.Run(() => {
+                    mre2.WaitOne();
+                    Assert.AreEqual(SQLITE_OK, sqlite3_open_v2(path, out var db2, flags));
+                    Assert.AreEqual(SQLITE_BUSY, sqlite3_exec(db2, "INSERT INTO t1(name) VALUES('fizzbuzz')"));
+                    Assert.AreEqual(SQLITE_OK, sqlite3_close(db2));
+                });
+
+                await Task.WhenAll(task1, task2);
+            }
+            Assert.IsTrue(called);
+
+            int busyHandler(IntPtr context, int callCount)
+            {
+                called = true;
+                Assert.AreEqual(ctx, context);
+                return 0;
             }
         }
     }

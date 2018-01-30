@@ -30,7 +30,16 @@ namespace SqliteNative
         [DllImport(SQLITE3)] public static extern int sqlite3_changes(IntPtr db);
         [DllImport(SQLITE3)] public static extern int sqlite3_total_changes(IntPtr db);
         [DllImport(SQLITE3)] public static extern long sqlite3_last_insert_rowid(IntPtr db);
+
+#region Register A Callback To Handle SQLITE_BUSY Errors
+        //https://sqlite.org/c3ref/busy_handler.html
+        public delegate int BusyHandler(IntPtr context, int lockCount);
+        [DllImport(SQLITE3)] public static extern int sqlite3_busy_handler(IntPtr db, IntPtr handler, IntPtr context);
+        public static int sqlite3_busy_handler(IntPtr db, Callback<BusyHandler> handler, IntPtr context) => sqlite3_busy_handler(db, (IntPtr)handler, context);
+
+        //https://sqlite.org/c3ref/busy_timeout.html
         [DllImport(SQLITE3)] public static extern int sqlite3_busy_timeout(IntPtr db, int ms);
+#endregion
 
 #region One-Step Query Execution Interface
         //https://sqlite.org/c3ref/exec.html
