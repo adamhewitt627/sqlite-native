@@ -45,7 +45,7 @@ namespace SqliteNative.Tests
         [TestMethod]
         public void TestColumnCount()
         {
-            using (var db = new Database("CREATE TABLE t1(id INTEGER PRIMARY KEY, data blob)"))
+            using (var db = new Database("CREATE TABLE t1(id INTEGER PRIMARY KEY, data TEXT)"))
             using (var stmt = new Statement(db, $"SELECT * FROM t1", out var remain))
                 Assert.AreEqual(2, sqlite3_column_count(stmt));
         }
@@ -65,46 +65,6 @@ namespace SqliteNative.Tests
                 {
                     Assert.AreEqual(SQLITE_ROW, sqlite3_step(stmt));
                     Assert.AreEqual(flibbety, sqlite3_column_text16(stmt, 0));
-                }
-            }
-        }
-
-        [TestMethod]
-        public void TestBindBlob()
-        {
-            using (var db = new Database("CREATE TABLE t1(id INTEGER PRIMARY KEY, data blob)"))
-            {
-                var blob = new byte[42];
-                new Random().NextBytes(blob);
-
-                using (var stmt = new Statement(db, $"INSERT INTO t1(data) VALUES(?)", out var remain))
-                {
-                    Assert.AreEqual(SQLITE_OK, sqlite3_bind_blob(stmt, 1, blob));
-                    Assert.AreEqual(SQLITE_DONE, sqlite3_step(stmt));
-                }
-                using (var stmt = new Statement(db, $"SELECT data FROM t1", out var remain))
-                {
-                    Assert.AreEqual(SQLITE_ROW, sqlite3_step(stmt));
-                    var actual = sqlite3_column_blob(stmt, 0);
-                    Assert.IsTrue(blob.SequenceEqual(actual));
-                }
-            }
-        }
-
-        [TestMethod]
-        public void TestEmptyBlob()
-        {
-            using (var db = new Database("CREATE TABLE t1(id INTEGER PRIMARY KEY, data blob)"))
-            {
-                using (var stmt = new Statement(db, $"INSERT INTO t1(data) VALUES(?)", out var remain))
-                {
-                    Assert.AreEqual(SQLITE_OK, sqlite3_bind_blob(stmt, 1, new byte[0]));
-                    Assert.AreEqual(SQLITE_DONE, sqlite3_step(stmt));
-                }
-                using (var stmt = new Statement(db, $"SELECT data FROM t1", out var remain))
-                {
-                    Assert.AreEqual(SQLITE_ROW, sqlite3_step(stmt));
-                    Assert.IsNull(sqlite3_column_blob(stmt, 0));
                 }
             }
         }
