@@ -1,0 +1,20 @@
+version: 3.22.0.{build}
+image: Visual Studio 2017
+configuration: Release
+dotnet_csproj:
+  patch: true
+  file: '**\*.csproj'
+  version: '{version}'
+  package_version: '{version}'
+  assembly_version: '{version}'
+  file_version: '{version}'
+  informational_version: '{version}'
+nuget:
+  disable_publish_on_pr: true
+build_script:
+- ps: dotnet pack -c release src
+test_script:
+- ps: dotnet test -c release tests
+artifacts:
+- path: '**\*.nupkg'
+deploy: off
