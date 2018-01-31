@@ -73,7 +73,7 @@ namespace SqliteNative
         public static int sqlite3_bind_text(IntPtr stmt, int index, string value)
         {
             using (var utf8 = new Utf8String(value))
-                return sqlite3_bind_text(stmt, index, utf8, utf8.Length, SQLITE_TRANSIENT);
+                return sqlite3_bind_text(stmt, index, utf8, utf8.Length - 1/*we don't include the 0-terminator here*/, SQLITE_TRANSIENT);
         }
         public static int sqlite3_bind_text16(IntPtr stmt, int index, string value) => sqlite3_bind_text(stmt, index, value);
 

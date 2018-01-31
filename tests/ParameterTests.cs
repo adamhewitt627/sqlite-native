@@ -43,14 +43,6 @@ namespace SqliteNative.Tests
         }
 
         [TestMethod]
-        public void TestColumnCount()
-        {
-            using (var db = new Database("CREATE TABLE t1(id INTEGER PRIMARY KEY, data TEXT)"))
-            using (var stmt = new Statement(db, $"SELECT * FROM t1", out var remain))
-                Assert.AreEqual(2, sqlite3_column_count(stmt));
-        }
-
-        [TestMethod]
         public void TestBindText()
         {
             using (var db = new Database("CREATE TABLE t1(id INTEGER PRIMARY KEY, data TEXT)"))
@@ -65,6 +57,24 @@ namespace SqliteNative.Tests
                 {
                     Assert.AreEqual(SQLITE_ROW, sqlite3_step(stmt));
                     Assert.AreEqual(flibbety, sqlite3_column_text16(stmt, 0));
+                }
+            }
+        }
+
+        [TestMethod]
+        public void BindsTextToNumber()
+        {
+            const int id = 7;
+            using (var db = new Database("CREATE TABLE t1(id INTEGER PRIMARY KEY, data TEXT)"))
+            using (var stmt = new Statement(db, $"INSERT INTO t1(id) VALUES(?)", out var remain))
+            {
+                Assert.AreEqual(SQLITE_OK, sqlite3_bind_text16(stmt, 1, id.ToString()));
+                Assert.AreEqual(SQLITE_DONE, sqlite3_step(stmt));
+
+                using (var query = new Statement(db, $"SELECT id FROM t1", out remain))
+                {
+                    Assert.AreEqual(SQLITE_ROW, sqlite3_step(query));
+                    Assert.AreEqual(id, sqlite3_column_int(query, 0));
                 }
             }
         }
