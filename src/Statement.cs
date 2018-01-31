@@ -76,6 +76,8 @@ namespace SqliteNative
                 return sqlite3_bind_text(stmt, index, utf8, utf8.Length, SQLITE_TRANSIENT);
         }
         public static int sqlite3_bind_text16(IntPtr stmt, int index, string value) => sqlite3_bind_text(stmt, index, value);
+
+        [DllImport(SQLITE3)] public static extern int sqlite3_bind_zeroblob(IntPtr stmt, int index, int nBytes);
 #endregion
 
 #region Bound Parameter Information
