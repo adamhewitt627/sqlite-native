@@ -100,8 +100,8 @@ namespace SqliteNative
 
 #region Column Names In A Result Set
         //https://sqlite.org/c3ref/column_name.html
-        [DllImport(SQLITE3, EntryPoint = nameof(sqlite3_column_name16))] private static extern IntPtr column_name16(IntPtr stmt, int index);
-        public static string sqlite3_column_name(IntPtr stmt, int index) => column_name16(stmt, index).FromUtf8();
+        [DllImport(SQLITE3, EntryPoint = nameof(sqlite3_column_name))] private static extern IntPtr column_name(IntPtr stmt, int index);
+        public static string sqlite3_column_name(IntPtr stmt, int index) => column_name(stmt, index).FromUtf8();
         public static string sqlite3_column_name16(IntPtr stmt, int index) => sqlite3_column_name(stmt, index);
 #endregion
 
