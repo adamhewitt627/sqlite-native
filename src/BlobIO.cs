@@ -60,6 +60,15 @@ namespace SqliteNative
 
             fixed (byte* b = buffer)
             {
+                /* Explanation:
+                    1. sqlite3_blob_read takes in 
+                        - A byte* (where to copy blob to/from) - ***but always at offset=0 in the buffer***
+                        - How many bytes to copy
+                        - Offset in the blob itself to read/write (not offset in the buffer)
+                    
+                    2. Rather than a temporary buffer, we can use ***b + offset*** to simulate the buffer offset for the Stream API
+                 */
+
                 var read = sqlite3_blob_read(_ppBlob, b + offset, count, (int)Position) == SQLITE_OK ? count : 0;
                 Position += read;
                 return read;
@@ -72,6 +81,7 @@ namespace SqliteNative
 
             fixed (byte* b = buffer)
             {
+                //See Explanation in Read
                 if (sqlite3_blob_write(_ppBlob, b + offset, count, (int)Position) == SQLITE_OK)
                     Position += count;
             }
