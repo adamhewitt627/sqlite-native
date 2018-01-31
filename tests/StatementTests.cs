@@ -67,5 +67,24 @@ namespace SqliteNative.Tests
                 Assert.AreEqual(expected, sqlite3_column_origin_name16(stmt, 0));
             }
         }
+
+        [TestMethod]
+        public void GetsOriginalSql()
+        {
+            const string sql = "INSERT INTO t1(data) VALUES('flibbety')";
+            using (var db = new Database($"CREATE TABLE t1(id INTEGER PRIMARY KEY, data TEXT)"))
+            using (var stmt = new Statement(db, sql, out var remain))
+                Assert.AreEqual(sql, sqlite3_sql(stmt));
+        }
+        [TestMethod]
+        public void GetsExpandedSql()
+        {
+            using (var db = new Database($"CREATE TABLE t1(id INTEGER PRIMARY KEY, data TEXT)"))
+            using (var stmt = new Statement(db, "INSERT INTO t1(data) VALUES(?)", out var remain))
+            {
+                Assert.AreEqual(SQLITE_OK, sqlite3_bind_text(stmt, 1, "flibbety"));
+                Assert.AreEqual("INSERT INTO t1(data) VALUES('flibbety')", sqlite3_expanded_sql(stmt));
+            }
+        }
     }
 }

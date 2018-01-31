@@ -94,6 +94,15 @@ namespace SqliteNative
 #region Number Of Columns In A Result Set
         //https://sqlite.org/c3ref/column_count.html
         [DllImport(SQLITE3)] public static extern int sqlite3_column_count(IntPtr stmt);
+        [DllImport(SQLITE3)] public static extern int sqlite3_data_count(IntPtr stmt);
+#endregion
+
+#region Retrieving Statement SQL
+        //https://sqlite.org/c3ref/expanded_sql.html
+        [DllImport(SQLITE3, EntryPoint = nameof(sqlite3_sql))] private static extern IntPtr sql(IntPtr stmt);
+        public static string sqlite3_sql(IntPtr stmt) => sql(stmt).FromUtf8();
+        [DllImport(SQLITE3, EntryPoint = nameof(sqlite3_expanded_sql))] private static extern IntPtr expanded_sql(IntPtr stmt);
+        public static string sqlite3_expanded_sql(IntPtr stmt) => expanded_sql(stmt).FromUtf8();
 #endregion
 
 #region Column Names In A Result Set
