@@ -47,12 +47,10 @@ namespace SqliteNative
 #endregion
 
 #region Statement lifecycle
-        //https://sqlite.org/c3ref/step.html
-        [DllImport(SQLITE3)] public static extern int sqlite3_step(IntPtr stmt);
-        //https://sqlite.org/c3ref/reset.html
-        [DllImport(SQLITE3)] public static extern int sqlite3_reset(IntPtr stmt);
-        //https://sqlite.org/c3ref/finalize.html
-        [DllImport(SQLITE3)] public static extern int sqlite3_finalize(IntPtr stmt);
+        [DllImport(SQLITE3)] public static extern int sqlite3_step(IntPtr stmt);                //https://sqlite.org/c3ref/step.html
+        [DllImport(SQLITE3)] public static extern int sqlite3_reset(IntPtr stmt);               //https://sqlite.org/c3ref/reset.html
+        [DllImport(SQLITE3)] public static extern int sqlite3_clear_bindings(IntPtr stmt);      //https://sqlite.org/c3ref/clear_bindings.html
+        [DllImport(SQLITE3)] public static extern int sqlite3_finalize(IntPtr stmt);            //https://sqlite.org/c3ref/finalize.html
 #endregion
 
 #region Binding Values To Prepared Statements
@@ -103,6 +101,19 @@ namespace SqliteNative
         [DllImport(SQLITE3, EntryPoint = nameof(sqlite3_column_name))] private static extern IntPtr column_name(IntPtr stmt, int index);
         public static string sqlite3_column_name(IntPtr stmt, int index) => column_name(stmt, index).FromUtf8();
         public static string sqlite3_column_name16(IntPtr stmt, int index) => sqlite3_column_name(stmt, index);
+#endregion
+
+#region Source Of Data In A Query Result
+        //https://sqlite.org/c3ref/column_database_name.html
+        [DllImport(SQLITE3, EntryPoint = nameof(sqlite3_column_database_name))] private static extern IntPtr column_database_name(IntPtr stmt, int index);
+        public static string sqlite3_column_database_name(IntPtr stmt, int index) => column_database_name(stmt, index).FromUtf8();
+        public static string sqlite3_column_database_name16(IntPtr stmt, int index) => sqlite3_column_database_name(stmt, index);
+        [DllImport(SQLITE3, EntryPoint = nameof(sqlite3_column_table_name))] private static extern IntPtr column_table_name(IntPtr stmt, int index);
+        public static string sqlite3_column_table_name(IntPtr stmt, int index) => column_table_name(stmt, index).FromUtf8();
+        public static string sqlite3_column_table_name16(IntPtr stmt, int index) => sqlite3_column_table_name(stmt, index);
+        [DllImport(SQLITE3, EntryPoint = nameof(sqlite3_column_origin_name))] private static extern IntPtr column_origin_name(IntPtr stmt, int index);
+        public static string sqlite3_column_origin_name(IntPtr stmt, int index) => column_origin_name(stmt, index).FromUtf8();
+        public static string sqlite3_column_origin_name16(IntPtr stmt, int index) => sqlite3_column_origin_name(stmt, index);
 #endregion
 
 #region Determine If An SQL Statement Is Complete
