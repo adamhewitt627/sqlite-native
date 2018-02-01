@@ -15,7 +15,7 @@ namespace SqliteNative
         }
 
         //https://sqlite.org/c3ref/value_blob.html
-        [DllImport(SQLITE3)] private unsafe static extern byte* value_blob(IntPtr value);
+        [DllImport(SQLITE3, EntryPoint = nameof(sqlite3_value_blob))] private unsafe static extern byte* value_blob(IntPtr value);
         public unsafe static byte[] sqlite3_value_blob(IntPtr value)
             => ToArray(value_blob(value), sqlite3_value_bytes(value));
 
@@ -29,10 +29,16 @@ namespace SqliteNative
         public static string sqlite3_value_text16(IntPtr value) => sqlite3_value_text(value);
         [DllImport(SQLITE3, EntryPoint = nameof(sqlite3_value_text16le))] private unsafe static extern byte* value_text16le(IntPtr value);
         public unsafe static byte[] sqlite3_value_text16le(IntPtr value) 
-            => ToArray(value_text16le(value), sqlite3_value_bytes16(value));
+        {
+            var length = sqlite3_value_bytes16(value);  //Calling this *after* value_text16be invalidates the pointer
+            return ToArray(value_text16le(value), length);
+        }
         [DllImport(SQLITE3, EntryPoint = nameof(sqlite3_value_text16be))] private unsafe static extern byte* value_text16be(IntPtr value);
-        public unsafe static byte[] sqlite3_value_text16be(IntPtr value) 
-            => ToArray(value_text16be(value), sqlite3_value_bytes16(value));
+        public unsafe static byte[] sqlite3_value_text16be(IntPtr value)
+        {
+            var length = sqlite3_value_bytes16(value);  //Calling this *after* value_text16be invalidates the pointer
+            return ToArray(value_text16be(value), length);
+        }
 
         [DllImport(SQLITE3)] public static extern int sqlite3_value_bytes(IntPtr value);
         [DllImport(SQLITE3)] public static extern int sqlite3_value_bytes16(IntPtr value);

@@ -37,6 +37,18 @@ namespace SqliteNative.Tests
         }
 
         [TestMethod]
+        public void TestBlobValue()
+        {
+            using (var db = CreateDatabase(42, out var blob))
+            using (var stmt = new Statement(db, $"SELECT data FROM t1", out var remain))
+            {
+                Assert.AreEqual(SQLITE_ROW, sqlite3_step(stmt));
+                var value = sqlite3_column_value(stmt, 0);
+                Assert.IsTrue(blob.SequenceEqual(sqlite3_value_blob(value)));
+            }
+        }
+
+        [TestMethod]
         public void TestEmptyBlob()
         {
             using (var db = CreateDatabase(0, out var blob))
