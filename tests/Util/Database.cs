@@ -9,11 +9,12 @@ namespace SqliteNative.Tests.Util
     {
         private IntPtr _db;
 
-        public Database(params string[] statements)
+        public Database(string path, int flags, params string[] statements)
         {
-            Assert.AreEqual(SQLITE_OK, sqlite3_open_v2(":memory:", out _db, SQLITE_OPEN_READWRITE));
+            Assert.AreEqual(SQLITE_OK, sqlite3_open_v2(path, out _db, flags));
             Execute(statements);
         }
+        public Database(params string[] statements) : this(":memory:", SQLITE_OPEN_READWRITE, statements) { }
         public static implicit operator IntPtr(Database database) => database._db;
 
         protected override void Dispose(bool disposing)

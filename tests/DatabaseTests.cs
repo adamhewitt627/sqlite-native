@@ -127,36 +127,30 @@ namespace tests
             }
         }
 
-        [TestMethod, Ignore]    //TODO - still haven't gotten this to work
-        public async Task InvokesBusyHandler()
+        [DataTestMethod]    //TODO - still haven't gotten this to work
+        [DataRow(0)]
+        [DataRow(7)]
+        public void InvokesBusyHandler(int busyCallCount)
         {
             var called = false;
             var ctx = (IntPtr)(42);
-            const string path = "file:memdb42?mode=memory&cache=shared";
-            const int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_URI | SQLITE_OPEN_FULLMUTEX;
+            
+            var path = Path.GetTempFileName();
+            using (var db1 = new Database(path, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, "BEGIN IMMEDIATE TRANSACTION"))
             using (var callback = new Callback<BusyHandler>(busyHandler))
+            using (var db2 = new Database(path, SQLITE_OPEN_READWRITE))
             {
-                Assert.AreEqual(SQLITE_OK, sqlite3_open_v2(path, out var db1, flags));
-                Assert.AreEqual(SQLITE_OK, sqlite3_exec(db1, "CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)"));
-                sqlite3_busy_handler(db1, callback, ctx);
-
-                ManualResetEvent mre1 = new ManualResetEvent(true), mre2 = new ManualResetEvent(false);
-                Task task1 = Task.Run(() => {
-                    Assert.AreEqual(SQLITE_OK, sqlite3_exec(db1, "BEGIN TRANSACTION; INSERT INTO t1(name) VALUES('fizzbuzz')"));
-                    mre2.Set();
-                }), task2 = Task.Run(() => {
-                    mre2.WaitOne();
-                    Assert.AreEqual(SQLITE_OK, sqlite3_open_v2(path, out var db2, flags));
-                    Assert.AreEqual(SQLITE_BUSY, sqlite3_exec(db2, "INSERT INTO t1(name) VALUES('fizzbuzz')"));
-                    Assert.AreEqual(SQLITE_OK, sqlite3_close(db2));
-                });
-
-                await Task.WhenAll(task1, task2);
+                sqlite3_busy_handler(db2, callback, ctx);
+                Assert.AreEqual(SQLITE_OK, sqlite3_prepare_v2(db2, "BEGIN IMMEDIATE TRANSACTION", out var stmt, out var remain));
+                Assert.AreEqual(SQLITE_BUSY, sqlite3_step(stmt));
+                sqlite3_finalize(stmt);
             }
             Assert.IsTrue(called);
+            File.Delete(path);
 
             int busyHandler(IntPtr context, int callCount)
             {
+                if (callCount < busyCallCount) return 1;
                 called = true;
                 Assert.AreEqual(ctx, context);
                 return 0;
