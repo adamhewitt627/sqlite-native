@@ -79,5 +79,30 @@ namespace SqliteNative
         [DllImport(SQLITE3)] private static extern IntPtr sqlite3_update_hook(IntPtr db, IntPtr callback, IntPtr context);
         public static IntPtr sqlite3_update_hook(IntPtr db, Callback<UpdateHook> callback, IntPtr context) => sqlite3_update_hook(db, (IntPtr)callback, context);
 #endregion
+
+#region Checkpoint a database
+        //https://sqlite.org/c3ref/wal_checkpoint.html
+        [DllImport(SQLITE3)] private static extern int sqlite3_wal_checkpoint(IntPtr db, IntPtr zDb);
+        public static int sqlite3_wal_checkpoint(IntPtr db, string zDb)
+        {
+            using (var utf8 = new Utf8String(zDb))
+                return sqlite3_wal_checkpoint(db, utf8);
+        }
+
+        //https://sqlite.org/c3ref/wal_checkpoint_v2.html
+        [DllImport(SQLITE3)] private static extern int sqlite3_wal_checkpoint_v2(IntPtr db, IntPtr zDb, int eMode, out int pnLog, out int pnCkpt);
+        public static int sqlite3_wal_checkpoint_v2(IntPtr db, string zDb, int eMode, out int pnLog, out int pnCkpt)
+        {
+            using (var utf8 = new Utf8String(zDb))
+                return sqlite3_wal_checkpoint_v2(db, utf8, eMode, out pnLog, out pnCkpt);
+        }
+#endregion
+
+#region Write-Ahead Log Commit Hook
+        //https://sqlite.org/c3ref/wal_hook.html
+        public delegate int WriteAheadLogHook(IntPtr context, IntPtr db, IntPtr dbName, int pageCount);
+        [DllImport(SQLITE3)] private static extern IntPtr sqlite3_wal_hook(IntPtr db, IntPtr callback, IntPtr context);
+        public static IntPtr sqlite3_wal_hook(IntPtr db, Callback<WriteAheadLogHook> callback, IntPtr context) => sqlite3_wal_hook(db, (IntPtr)callback, context);        
+#endregion
     }
 }

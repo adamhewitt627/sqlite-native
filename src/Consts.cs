@@ -37,5 +37,10 @@ namespace SqliteNative
 
         public static IntPtr SQLITE_TRANSIENT = (IntPtr)(-1);
         public const int SQLITE_MISSING_DB_HANDLE = 1000;
+
+        public const int SQLITE_CHECKPOINT_PASSIVE = 0;     /* Do as much as possible w/o blocking */
+        public const int SQLITE_CHECKPOINT_FULL = 1;        /* Wait for writers, then checkpoint */
+        public const int SQLITE_CHECKPOINT_RESTART = 2;     /* Like FULL but wait for for readers */
+        public const int SQLITE_CHECKPOINT_TRUNCATE = 3;    /* Like RESTART but also truncate WAL */
     }
 }

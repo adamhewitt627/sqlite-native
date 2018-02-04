@@ -156,5 +156,27 @@ namespace tests
                 return 0;
             }
         }
+
+        [TestMethod]
+        public void LogsWALCommit()
+        {
+            var called = false;
+            var ctx = (IntPtr)(42);
+            using (var db = new Database("PRAGMA journal_mode=WAL", "CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)"))
+            using (var callback = new Callback<WriteAheadLogHook>(walHook))
+            {
+                sqlite3_wal_hook(db, callback, ctx);
+                Assert.AreEqual(SQLITE_OK, sqlite3_exec(db, "BEGIN; INSERT INTO t1(name) VALUES('flibbety'); COMMIT"));
+                sqlite3_wal_checkpoint_v2(db, null, SQLITE_CHECKPOINT_FULL, out int pnLog, out int pnCkpt);
+            }
+            Assert.IsTrue(called);
+
+            int walHook(IntPtr context, IntPtr db, IntPtr dbName, int pages)
+            {
+                called = true;
+                Assert.AreEqual(ctx, context);
+                return SQLITE_OK;
+            }
+        }
     }
 }
