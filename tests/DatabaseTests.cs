@@ -164,10 +164,9 @@ namespace tests
             var called = false;
             var ctx = (IntPtr)(42);
             var path = Path.GetTempFileName();
-            using (var db = new Database(path, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE))
+            using (var db = new Database(path, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, "PRAGMA journal_mode=WAL"))
             using (var callback = new Callback<WriteAheadLogHook>(walHook))
             {
-                sqlite3_exec(db, string.Join(";", "PRAGMA journal_mode=WAL"));
                 sqlite3_wal_hook(db, callback, ctx);
                 Assert.AreEqual(SQLITE_OK, sqlite3_exec(db, "CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)"));
             }
