@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -162,14 +163,16 @@ namespace tests
         {
             var called = false;
             var ctx = (IntPtr)(42);
-            using (var db = new Database("PRAGMA journal_mode=WAL", "CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)"))
+            var path = Path.GetTempFileName();
+            using (var db = new Database(path, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE))
             using (var callback = new Callback<WriteAheadLogHook>(walHook))
             {
+                sqlite3_exec(db, string.Join(";", "PRAGMA journal_mode=WAL"));
                 sqlite3_wal_hook(db, callback, ctx);
-                Assert.AreEqual(SQLITE_OK, sqlite3_exec(db, "BEGIN; INSERT INTO t1(name) VALUES('flibbety'); COMMIT"));
-                sqlite3_wal_checkpoint_v2(db, null, SQLITE_CHECKPOINT_FULL, out int pnLog, out int pnCkpt);
+                Assert.AreEqual(SQLITE_OK, sqlite3_exec(db, "CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)"));
             }
             Assert.IsTrue(called);
+            File.Delete(path);
 
             int walHook(IntPtr context, IntPtr db, IntPtr dbName, int pages)
             {
