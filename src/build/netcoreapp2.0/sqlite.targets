@@ -8,8 +8,7 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>sqlite3.dll</Link>
     </Content> -->
-    <Content Include="$(MSBuildThisFileDirectory)..\runtimes\win-x64\native\sqlite3.dll"
-             Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
+    <Content Include="$(MSBuildThisFileDirectory)..\runtimes\win-x64\native\sqlite3.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>sqlite3.dll</Link>
     </Content>
