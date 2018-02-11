@@ -16,6 +16,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="build\**\*">
+      <Pack>true</Pack>
+    </None>
     <None Include="runtimes\**\*">
       <Pack>true</Pack>
       <PackagePath>runtimes/</PackagePath>

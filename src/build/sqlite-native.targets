@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <!-- https://stackoverflow.com/questions/40104838/automatic-native-and-managed-dlls-extracting-from-nuget-package -->
+
+  <ItemGroup>
+    <!-- <Content Include="$(MSBuildThisFileDirectory)..\runtimes\win-x86\native\sqlite3.dll"
+             Condition=" '$(TargetFramework)|$(Platform)' == 'netcoreapp2.0|win-x86' ">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>sqlite3.dll</Link>
+    </Content> -->
+    <Content Include="$(MSBuildThisFileDirectory)..\runtimes\win-x64\native\sqlite3.dll"
+             Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>sqlite3.dll</Link>
+    </Content>
+  </ItemGroup>
+
+</Project>
