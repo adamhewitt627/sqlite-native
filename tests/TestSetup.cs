@@ -5,7 +5,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace SqliteNative.Tests
 {
-    /*[TestClass]
+    [TestClass]
     public class TestSetup
     {
         [DllImport("kernel32")]
@@ -16,9 +16,9 @@ namespace SqliteNative.Tests
         {
             string @base = System.IO.Path.GetDirectoryName(new Uri(typeof(TestSetup).GetTypeInfo().Assembly.CodeBase).LocalPath),
                 bitness = IntPtr.Size == 8 ? "x64" : "x86",
-                file = $@"win-{bitness}\native\sqlite3.dll";
+                file = $@"{bitness}\sqlite3.dll";
             var lib = LoadLibrary(System.IO.Path.Combine(@base, file));
             Assert.AreNotEqual(lib, IntPtr.Zero);
         }
-    }*/
+    }
 }
