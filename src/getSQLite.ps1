@@ -1,4 +1,5 @@
 try {
+    # Based on https://stackoverflow.com/questions/40104838/automatic-native-and-managed-dlls-extracting-from-nuget-package
     Push-Location $PSScriptRoot
     $buildVersion = [version]([regex]"version: (\d+.\d+.\d+)").Match((Get-Content ..\appveyor.yml -Raw)).Groups[1].Value
     $version = @($buildVersion.Major.ToString(), $buildVersion.Minor.ToString().PadRight(3,'0'), $buildVersion.Build.ToString().PadRight(3,'0')) -join ""

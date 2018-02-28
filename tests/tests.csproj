@@ -10,15 +10,12 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.5.0" />
     <PackageReference Include="MSTest.TestAdapter" Version="1.2.0" />
     <PackageReference Include="MSTest.TestFramework" Version="1.2.0" />
+    <!-- <PackageReference Include="SqliteNative.NET" Version="3.22.0.57" /> -->
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\src\sqlite-native.csproj" />
-
-    <Content Include="..\src\runtimes\**\sqlite3.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
-    </Content>
   </ItemGroup>
+  <Import Project="..\src\build\netcoreapp2.0\sqlitenative.net.targets" />
 
 </Project>
