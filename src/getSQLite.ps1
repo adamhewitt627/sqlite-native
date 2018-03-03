@@ -4,7 +4,7 @@ try {
     $buildVersion = [version]([regex]"version: (\d+.\d+.\d+)").Match((Get-Content ..\appveyor.yml -Raw)).Groups[1].Value
     $version = @($buildVersion.Major.ToString(), $buildVersion.Minor.ToString().PadRight(3,'0'), $buildVersion.Build.ToString().PadRight(3,'0')) -join ""
 
-    $year = (Get-Date).Year + 1
+    $year = (Get-Date).Year
     do { try {
         Invoke-WebRequest "https://sqlite.org/$year/sqlite-amalgamation-$version.zip" -Method Head | Out-Null
         break

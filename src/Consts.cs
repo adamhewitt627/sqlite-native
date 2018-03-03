@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace SqliteNative
 {
-    public static partial class Sqlite3
+    partial class Sqlite3
     {
         public const string SQLITE3 = "sqlite3";    //DllImport name
         static Sqlite3() => Debug.WriteLine($"Using SQLite version {sqlite3_libversion()}");
