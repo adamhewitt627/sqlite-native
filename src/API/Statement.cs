@@ -1,7 +1,6 @@
+using SqliteNative.Util;
 using System;
 using System.Runtime.InteropServices;
-using System.Text;
-using SqliteNative.Util;
 using static System.Runtime.InteropServices.CallingConvention;
 
 namespace SqliteNative
