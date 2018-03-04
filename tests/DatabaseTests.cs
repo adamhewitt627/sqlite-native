@@ -1,15 +1,11 @@
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using SqliteNative.Tests;
+using SqliteNative.Util;
 using System;
 using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SqliteNative;
-using SqliteNative.Tests.Util;
-using SqliteNative.Util;
 using static SqliteNative.Sqlite3;
 
-namespace tests
+namespace SqliteNative.Tests
 {
     [TestClass]
     public class UnitTest1
@@ -40,7 +36,8 @@ namespace tests
             try
             {
                 Assert.AreNotEqual(0, err);
-            } finally { sqlite3_close(db); }
+            }
+            finally { sqlite3_close(db); }
         }
 
         [TestMethod]
@@ -63,11 +60,11 @@ namespace tests
         {
             var called = false;
             var ctx = (IntPtr)(42);
-            using (var db = new Database("CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)"))
+            using (var db = new Sqlite3().OpenTest("CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)"))
             using (var cb = new Callback<UpdateHook>(updateHook))
             {
-                Assert.AreEqual(IntPtr.Zero, sqlite3_update_hook(db, cb, ctx));
-                Assert.AreEqual(SQLITE_OK, sqlite3_exec(db, "INSERT INTO t1(name) VALUES('fizzbuzz')"));
+                Assert.AreEqual(IntPtr.Zero, sqlite3_update_hook(db.Handle, cb, ctx));
+                Assert.IsTrue(db.Execute("INSERT INTO t1(name) VALUES('fizzbuzz')"));
             }
             Assert.IsTrue(called);
 
@@ -85,11 +82,11 @@ namespace tests
         {
             var called = false;
             var ctx = (IntPtr)(42);
-            using (var db = new Database())
+            using (var db = new Sqlite3().OpenTest())
             using (var cb = new Callback<CommitHook>(commitHook))
             {
-                Assert.AreEqual(IntPtr.Zero, sqlite3_commit_hook(db, cb, ctx));
-                Assert.AreEqual(SQLITE_OK, sqlite3_exec(db, string.Join(";", "BEGIN",
+                Assert.AreEqual(IntPtr.Zero, sqlite3_commit_hook(db.Handle, cb, ctx));
+                Assert.IsTrue(db.Execute(string.Join(";", "BEGIN",
                     "CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)",
                     "COMMIT")));
             }
@@ -108,13 +105,13 @@ namespace tests
         {
             var called = false;
             var ctx = (IntPtr)(42);
-            using (var db = new Database())
+            using (var db = new Sqlite3().OpenTest())
             using (var commit = new Callback<CommitHook>(commitHook))
             using (var rollback = new Callback<RollbackHook>(rollbackHook))
             {
-                Assert.AreEqual(IntPtr.Zero, sqlite3_commit_hook(db, commit, ctx));
-                Assert.AreEqual(IntPtr.Zero, sqlite3_rollback_hook(db, rollback, ctx));
-                sqlite3_exec(db, string.Join(";", "BEGIN",
+                Assert.AreEqual(IntPtr.Zero, sqlite3_commit_hook(db.Handle, commit, ctx));
+                Assert.AreEqual(IntPtr.Zero, sqlite3_rollback_hook(db.Handle, rollback, ctx));
+                db.Execute(string.Join(";", "BEGIN",
                     "CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)",
                     "COMMIT"));
             }
@@ -135,16 +132,16 @@ namespace tests
         {
             var called = false;
             var ctx = (IntPtr)(42);
-            
+
             var path = Path.GetTempFileName();
-            using (var db1 = new Database(path, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, "BEGIN IMMEDIATE TRANSACTION"))
+            var sqlite = new Sqlite3();
+            using (var db1 = sqlite.OpenTest(path, OpenFlags.ReadWrite | OpenFlags.Create, "BEGIN IMMEDIATE TRANSACTION"))
             using (var callback = new Callback<BusyHandler>(busyHandler))
-            using (var db2 = new Database(path, SQLITE_OPEN_READWRITE))
+            using (var db2 = sqlite.OpenTest(path, OpenFlags.ReadWrite))
             {
-                sqlite3_busy_handler(db2, callback, ctx);
-                Assert.AreEqual(SQLITE_OK, sqlite3_prepare_v2(db2, "BEGIN IMMEDIATE TRANSACTION", out var stmt, out var remain));
-                Assert.AreEqual(SQLITE_BUSY, sqlite3_step(stmt));
-                sqlite3_finalize(stmt);
+                sqlite3_busy_handler(db2.Handle, callback, ctx);
+                using (var stms = db2.Prepare("BEGIN IMMEDIATE TRANSACTION"))
+                    Assert.AreEqual(Status.Busy, stms.Step());
             }
             Assert.IsTrue(called);
             File.Delete(path);
@@ -164,11 +161,11 @@ namespace tests
             var called = false;
             var ctx = (IntPtr)(42);
             var path = Path.GetTempFileName();
-            using (var db = new Database(path, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, "PRAGMA journal_mode=WAL"))
+            using (var db = new Sqlite3().OpenTest(path, OpenFlags.ReadWrite | OpenFlags.Create, "PRAGMA journal_mode=WAL"))
             using (var callback = new Callback<WriteAheadLogHook>(walHook))
             {
-                sqlite3_wal_hook(db, callback, ctx);
-                Assert.AreEqual(SQLITE_OK, sqlite3_exec(db, "CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)"));
+                sqlite3_wal_hook(db.Handle, callback, ctx);
+                Assert.IsTrue(db.Execute("CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)"));
             }
             Assert.IsTrue(called);
             File.Delete(path);

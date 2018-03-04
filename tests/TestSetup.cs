@@ -21,4 +21,16 @@ namespace SqliteNative.Tests
             Assert.AreNotEqual(lib, IntPtr.Zero);
         }
     }
+
+    internal static class DatabaseExtensions
+    {
+        public static IDatabase OpenTest(this ISQLite sqlite, params string[] statements) => OpenTest(sqlite, ":memory:", OpenFlags.ReadWrite, statements);
+        public static IDatabase OpenTest(this ISQLite sqlite, string path, OpenFlags flags, params string[] statements)
+        {
+            var db = sqlite.Open(path, flags);
+            foreach (var s in statements)
+                db.Execute(s);
+            return db;
+        }
+    }
 }

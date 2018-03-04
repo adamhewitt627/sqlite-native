@@ -12,7 +12,7 @@ namespace SqliteNative
         /// In general this shouldn't be needed, but is exposed as a convenience to access the
         /// SQLite API directly, especially where a more object-oriented approach hasn't been built.
         /// </summary>
-        IntPtr Pointer { get; }
+        IntPtr Handle { get; }
 
         IStatement Prepare(string sql);
         IStatement Prepare(string sql, out string remaining);
@@ -38,7 +38,7 @@ namespace SqliteNative
             Error = new ErrorInfo(this);
         }
 
-        public IntPtr Pointer => _db;
+        public IntPtr Handle => _db;
         public IError Error { get; }
 
         protected override void Dispose(bool disposing) => Close();

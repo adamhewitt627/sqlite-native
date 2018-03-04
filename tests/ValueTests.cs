@@ -1,8 +1,7 @@
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Linq;
 using System.Text;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SqliteNative.Tests.Util;
 using static SqliteNative.Sqlite3;
 
 namespace SqliteNative.Tests
@@ -13,11 +12,11 @@ namespace SqliteNative.Tests
         private static void TestText(Action<IntPtr, string> test)
         {
             var expected = "flibbety";
-            using (var db = new Database("CREATE TABLE t1(id INTEGER PRIMARY KEY, data TEXT)", $"INSERT INTO t1(data) VALUES('{expected}')"))
-            using (var stmt = new Statement(db, "SELECT data FROM t1", out var remain))
+            using (var db = new Sqlite3().OpenTest("CREATE TABLE t1(id INTEGER PRIMARY KEY, data TEXT)", $"INSERT INTO t1(data) VALUES('{expected}')"))
+            using (var stmt = db.Prepare("SELECT data FROM t1"))
             {
-                Assert.AreEqual(SQLITE_ROW, sqlite3_step(stmt));
-                var value = sqlite3_column_value(stmt, 0);
+                Assert.AreEqual(Status.Row, stmt.Step());
+                var value = sqlite3_column_value(stmt.Handle, 0);
                 test(value, expected);
             }
         }
@@ -47,11 +46,11 @@ namespace SqliteNative.Tests
 
         private static void TestNumber<T>(T expected, Action<IntPtr, T> test)
         {
-            using (var db = new Database("CREATE TABLE t1(id INTEGER PRIMARY KEY, data)", $"INSERT INTO t1(data) VALUES({expected})"))
-            using (var stmt = new Statement(db, "SELECT data FROM t1", out var remain))
+            using (var db = new Sqlite3().OpenTest("CREATE TABLE t1(id INTEGER PRIMARY KEY, data)", $"INSERT INTO t1(data) VALUES({expected})"))
+            using (var stmt = db.Prepare("SELECT data FROM t1"))
             {
-                Assert.AreEqual(SQLITE_ROW, sqlite3_step(stmt));
-                var value = sqlite3_column_value(stmt, 0);
+                Assert.AreEqual(Status.Row, stmt.Step());
+                var value = sqlite3_column_value(stmt.Handle, 0);
                 test(value, expected);
             }
         }

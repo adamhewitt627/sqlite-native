@@ -7,6 +7,12 @@ namespace SqliteNative
 {
     public interface IStatement : IDisposable
     {
+        /// <summary>
+        /// In general this shouldn't be needed, but is exposed as a convenience to access the
+        /// SQLite API directly, especially where a more object-oriented approach hasn't been built.
+        /// </summary>
+        IntPtr Handle { get; }
+
         Status Step();
         bool Reset();
 
@@ -31,6 +37,7 @@ namespace SqliteNative
                 _logger?.LogError(_database.Error.Message);
         }
 
+        public IntPtr Handle => _stmt;
         public IBindings Bindings { get; }
         public IColumns Columns { get; }
 

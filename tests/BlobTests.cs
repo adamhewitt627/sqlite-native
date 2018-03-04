@@ -1,9 +1,8 @@
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SqliteNative.Tests.Util;
 using static SqliteNative.Sqlite3;
 
 namespace SqliteNative.Tests
@@ -68,7 +67,7 @@ namespace SqliteNative.Tests
             using (var db = CreateDatabase(length, out var blob))
             {
                 var actual = new byte[length];
-                Assert.AreEqual(SQLITE_OK, sqlite3_blob_open(db.Pointer, "main", "t1", "data", 1, 0, out var ppBlob));
+                Assert.AreEqual(SQLITE_OK, sqlite3_blob_open(db.Handle, "main", "t1", "data", 1, 0, out var ppBlob));
                 Assert.AreEqual(SQLITE_OK, sqlite3_blob_read(ppBlob, actual, length, 0));
                 Assert.IsTrue(blob.SequenceEqual(actual));
                 sqlite3_blob_close(ppBlob);
@@ -80,7 +79,7 @@ namespace SqliteNative.Tests
         {
             const int length = 512;
             using (var db = CreateDatabase(length, out var data))
-            using (var blob = new Blob(db.Pointer, "main", "t1", "data", 1))
+            using (var blob = new Blob(db.Handle, "main", "t1", "data", 1))
             using (var stream = new MemoryStream())
             {
                 await blob.CopyToAsync(stream, 60);
@@ -92,26 +91,25 @@ namespace SqliteNative.Tests
         public async Task CanWriteBlob()
         {
             const int length = 512;
-            using (var db = new Database("CREATE TABLE t1(id INTEGER PRIMARY KEY, data BLOB)"))
+            using (var db = new Sqlite3().OpenTest("CREATE TABLE t1(id INTEGER PRIMARY KEY, data BLOB)"))
             {
-                using (var stmt = new Statement(db, $"INSERT INTO t1(data) VALUES(?)", out var remain))
+                using (var stmt = db.Prepare($"INSERT INTO t1(data) VALUES(?)"))
                 {
-                    Assert.AreEqual(SQLITE_OK, sqlite3_bind_zeroblob(stmt, 1, length));
-                    Assert.AreEqual(SQLITE_DONE, sqlite3_step(stmt));
+                    Assert.AreEqual(SQLITE_OK, sqlite3_bind_zeroblob(stmt.Handle, 1, length));
+                    Assert.AreEqual(Status.Done, stmt.Step());
                 }
 
                 var expected = new byte[length];
                 new Random().NextBytes(expected);
 
-                using (var blob = new Blob(db, "main", "t1", "data", 1, 1))
+                using (var blob = new Blob(db.Handle, "main", "t1", "data", 1, 1))
                 using (var stream = new MemoryStream(expected))
                     await stream.CopyToAsync(blob, 60);
 
-                using (var stmt = new Statement(db, $"SELECT data FROM t1", out var remain))
+                using (var stmt = db.Prepare($"SELECT data FROM t1"))
                 {
-                    Assert.AreEqual(SQLITE_ROW, sqlite3_step(stmt));
-                    var actual = sqlite3_column_blob(stmt, 0);
-                    Assert.IsTrue(expected.SequenceEqual(actual));
+                    Assert.AreEqual(Status.Row, stmt.Step());
+                    Assert.IsTrue(expected.SequenceEqual(stmt.Columns.GetBlob(0)));
                 }
             }
         }
