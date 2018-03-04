@@ -12,9 +12,9 @@ namespace SqliteNative.Tests
         [TestMethod]
         public void TestParameterCount()
         {
-            using (var db = new Database("CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)"))
-            using (var stmt = new Statement(db, "SELECT * FROM t1 WHERE name = ? OR name = ?; VACUUM", out var remain))
-                Assert.AreEqual(2, sqlite3_bind_parameter_count(stmt));
+            using (var db = new Sqlite3().OpenTest("CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)"))
+            using (var stmt = db.Prepare("SELECT * FROM t1 WHERE name = ? OR name = ?; VACUUM"))
+                Assert.AreEqual(2, stmt.Bindings.Count);
         }
 
         [DataTestMethod]
@@ -25,9 +25,9 @@ namespace SqliteNative.Tests
         [DataRow("$FOO")]
         public void TestParameterName(string parameter)
         {
-            using (var db = new Database("CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)"))
-            using (var stmt = new Statement(db, $"SELECT * FROM t1 WHERE name = {parameter}", out var remain))
-                Assert.AreEqual(parameter=="?"?null:parameter, sqlite3_bind_parameter_name(stmt, 1));
+            using (var db = new Sqlite3().OpenTest("CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)"))
+            using (var stmt = db.Prepare($"SELECT * FROM t1 WHERE name = {parameter}"))
+                Assert.AreEqual(parameter=="?"?null:parameter, stmt.Bindings.NameOf(1));
         }
 
         [DataTestMethod]
@@ -37,26 +37,26 @@ namespace SqliteNative.Tests
         [DataRow("$FOO")]
         public void TestParameterIndex(string parameter)
         {
-            using (var db = new Database("CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)"))
-            using (var stmt = new Statement(db, $"SELECT * FROM t1 WHERE name = {parameter}", out var remain))
-                Assert.AreEqual(1, sqlite3_bind_parameter_index(stmt, parameter));
+            using (var db = new Sqlite3().OpenTest("CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)"))
+            using (var stmt = db.Prepare($"SELECT * FROM t1 WHERE name = {parameter}"))
+                Assert.AreEqual(1, stmt.Bindings.IndexOf(parameter));
         }
 
         [TestMethod]
         public void TestBindText()
         {
-            using (var db = new Database("CREATE TABLE t1(id INTEGER PRIMARY KEY, data TEXT)"))
+            const string flibbety = "flibbetty gibbett";
+            using (var db = new Sqlite3().OpenTest("CREATE TABLE t1(id INTEGER PRIMARY KEY, data TEXT)"))
             {
-                const string flibbety = "flibbetty gibbett";
-                using (var stmt = new Statement(db, $"INSERT INTO t1(data) VALUES(?)", out var remain))
+                using (var stmt = db.Prepare($"INSERT INTO t1(data) VALUES(?)"))
                 {
-                    Assert.AreEqual(SQLITE_OK, sqlite3_bind_text16(stmt, 1, flibbety));
-                    Assert.AreEqual(SQLITE_DONE, sqlite3_step(stmt));
+                    Assert.IsTrue(stmt.Bindings.SetText(1, flibbety));
+                    Assert.AreEqual(Status.Done, stmt.Step());
                 }
-                using (var stmt = new Statement(db, $"SELECT data FROM t1", out var remain))
+                using (var stmt = db.Prepare($"SELECT data FROM t1"))
                 {
-                    Assert.AreEqual(SQLITE_ROW, sqlite3_step(stmt));
-                    Assert.AreEqual(flibbety, sqlite3_column_text16(stmt, 0));
+                    Assert.AreEqual(Status.Row, stmt.Step());
+                    Assert.AreEqual(flibbety, stmt.Columns.GetText(0));
                 }
             }
         }
@@ -65,16 +65,16 @@ namespace SqliteNative.Tests
         public void BindsTextToNumber()
         {
             const int id = 7;
-            using (var db = new Database("CREATE TABLE t1(id INTEGER PRIMARY KEY, data TEXT)"))
-            using (var stmt = new Statement(db, $"INSERT INTO t1(id) VALUES(?)", out var remain))
+            using (var db = new Sqlite3().OpenTest("CREATE TABLE t1(id INTEGER PRIMARY KEY, data TEXT)"))
+            using (var stmt = db.Prepare($"INSERT INTO t1(id) VALUES(?)"))
             {
-                Assert.AreEqual(SQLITE_OK, sqlite3_bind_text16(stmt, 1, id.ToString()));
-                Assert.AreEqual(SQLITE_DONE, sqlite3_step(stmt));
+                Assert.IsTrue(stmt.Bindings.SetText(1, id.ToString()));
+                Assert.AreEqual(Status.Done, stmt.Step());
 
-                using (var query = new Statement(db, $"SELECT id FROM t1", out remain))
+                using (var query = db.Prepare($"SELECT id FROM t1"))
                 {
-                    Assert.AreEqual(SQLITE_ROW, sqlite3_step(query));
-                    Assert.AreEqual(id, sqlite3_column_int(query, 0));
+                    Assert.AreEqual(Status.Row, query.Step());
+                    Assert.AreEqual(id, query.Columns.GetInt32(0));
                 }
             }
         }

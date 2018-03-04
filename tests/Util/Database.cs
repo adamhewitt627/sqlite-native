@@ -5,6 +5,17 @@ using static SqliteNative.Sqlite3;
 
 namespace SqliteNative.Tests.Util
 {
+    internal static class DatabaseExtensions
+    {
+        public static IDatabase OpenTest(this ISQLite sqlite, params string[] statements)
+        {
+            var db = sqlite.Open(":memory:", OpenFlags.ReadWrite);
+            foreach (var s in statements)
+                db.Execute(s);
+            return db;
+        }
+    }
+
     class Database : Disposable
     {
         private IntPtr _db;

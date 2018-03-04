@@ -1,6 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using System;
-using static SqliteNative.Sqlite3;
 
 namespace SqliteNative
 {
@@ -11,15 +9,15 @@ namespace SqliteNative
         bool IsComplete(string query);
     }
 
-    internal class SQLite : ISQLite
+    public partial class Sqlite3 : ISQLite
     {
         private readonly ILogger<Database> _databaseLogger;
         private readonly ILogger<Statement> _statementLogger;
 
-        public SQLite(ILogger<Database> databaseLogger, ILogger<Statement> statementLogger)
+        public Sqlite3(ILoggerFactory loggerFactory = null)
         {
-            _databaseLogger = databaseLogger ?? throw new ArgumentNullException(nameof(databaseLogger));
-            _statementLogger = statementLogger ?? throw new ArgumentNullException(nameof(statementLogger));
+            _databaseLogger = loggerFactory?.CreateLogger<Database>();
+            _statementLogger = loggerFactory?.CreateLogger<Statement>();
         }
 
         string ISQLite.Version => sqlite3_libversion();

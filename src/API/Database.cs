@@ -6,7 +6,7 @@ using static System.Runtime.InteropServices.CallingConvention;
 
 namespace SqliteNative
 {
-    public static partial class Sqlite3
+    partial class Sqlite3
     {
 #region Opening A New Database Connection
         //https://sqlite.org/c3ref/open.html

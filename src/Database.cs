@@ -8,6 +8,12 @@ namespace SqliteNative
 {
     public interface IDatabase : IDisposable
     {
+        /// <summary>
+        /// In general this shouldn't be needed, but is exposed as a convenience to access the
+        /// SQLite API directly, especially where a more object-oriented approach hasn't been built.
+        /// </summary>
+        IntPtr Pointer { get; }
+
         IStatement Prepare(string sql);
         IStatement Prepare(string sql, out string remaining);
         bool Execute(string sql);
@@ -27,11 +33,12 @@ namespace SqliteNative
 
         public Database(ILogger<Database> dbLogger, ILogger<Statement> stmtLogger)
         {
-            _dbLogger = dbLogger ?? throw new ArgumentNullException(nameof(dbLogger));
-            _stmtLogger = stmtLogger ?? throw new ArgumentNullException(nameof(stmtLogger));
+            _dbLogger = dbLogger;
+            _stmtLogger = stmtLogger;
             Error = new ErrorInfo(this);
         }
 
+        public IntPtr Pointer => _db;
         public IError Error { get; }
 
         protected override void Dispose(bool disposing) => Close();
@@ -40,23 +47,23 @@ namespace SqliteNative
         public bool Open(string filename, OpenFlags flags)
         {
             var err = sqlite3_open_v2(filename, out _db, (int)flags);
-            if (err != SQLITE_OK) _dbLogger.LogError(Error.Message);
+            if (err != SQLITE_OK) _dbLogger?.LogError(Error.Message);
             return err == SQLITE_OK;
         }
 
         public bool Close()
         {
             var err = sqlite3_close_v2(_db);
-            if (err != SQLITE_OK) _dbLogger.LogError(Error.Message);
+            if (err != SQLITE_OK) _dbLogger?.LogError(Error.Message);
             return err == SQLITE_OK;
         }
 
         public IStatement Prepare(string sql) => Prepare(sql, out var remaining);
-        public IStatement Prepare(string sql, out string remaining) => new Statement(_stmtLogger, this, sql, out remaining);
+        public IStatement Prepare(string sql, out string remaining) => new Statement(this, sql, out remaining, _stmtLogger);
         public bool Execute(string sql)
         {
             var err = sqlite3_exec(this, sql);
-            if (err != SQLITE_OK) _dbLogger.LogError(Error.Message);
+            if (err != SQLITE_OK) _dbLogger?.LogError(Error.Message);
             return err == SQLITE_OK;
         }
 

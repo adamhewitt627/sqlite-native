@@ -11,15 +11,16 @@ namespace SqliteNative.Tests
     [TestClass]
     public class BlobTests
     {
-        private static Database CreateDatabase(int length, out byte[] blob)
+        private static IDatabase CreateDatabase(int length, out byte[] blob)
         {
-            var db = new Database("CREATE TABLE t1(id INTEGER PRIMARY KEY, data BLOB)");
+            var db = new Sqlite3().OpenTest();
+            db.Execute("CREATE TABLE t1(id INTEGER PRIMARY KEY, data BLOB)");
             new Random().NextBytes(blob = new byte[length]);
 
-            using (var stmt = new Statement(db, $"INSERT INTO t1(data) VALUES(?)", out var remain))
+            using (var stmt = db.Prepare($"INSERT INTO t1(data) VALUES(?)"))
             {
-                Assert.AreEqual(SQLITE_OK, sqlite3_bind_blob(stmt, 1, blob));
-                Assert.AreEqual(SQLITE_DONE, sqlite3_step(stmt));
+                Assert.IsTrue(stmt.Bindings.SetBlob(1, blob));
+                Assert.AreEqual(Status.Done, stmt.Step());
             }
             return db;
         }
@@ -29,10 +30,10 @@ namespace SqliteNative.Tests
         public void TestBindBlob()
         {
             using (var db = CreateDatabase(42, out var blob))
-            using (var stmt = new Statement(db, $"SELECT data FROM t1", out var remain))
+            using (var stmt = db.Prepare($"SELECT data FROM t1"))
             {
-                Assert.AreEqual(SQLITE_ROW, sqlite3_step(stmt));
-                Assert.IsTrue(blob.SequenceEqual(sqlite3_column_blob(stmt, 0)));
+                Assert.AreEqual(Status.Row, stmt.Step());
+                Assert.IsTrue(blob.SequenceEqual(stmt.Columns.GetBlob(0)));
             }
         }
 
@@ -40,11 +41,11 @@ namespace SqliteNative.Tests
         public void TestBlobValue()
         {
             using (var db = CreateDatabase(42, out var blob))
-            using (var stmt = new Statement(db, $"SELECT data FROM t1", out var remain))
+            using (var stmt = db.Prepare($"SELECT data FROM t1"))
             {
-                Assert.AreEqual(SQLITE_ROW, sqlite3_step(stmt));
-                var value = sqlite3_column_value(stmt, 0);
-                Assert.IsTrue(blob.SequenceEqual(sqlite3_value_blob(value)));
+                Assert.AreEqual(Status.Row, stmt.Step());
+                var value = stmt.Columns.GetValue(0);
+                Assert.IsTrue(blob.SequenceEqual(value.AsBlob()));
             }
         }
 
@@ -52,10 +53,10 @@ namespace SqliteNative.Tests
         public void TestEmptyBlob()
         {
             using (var db = CreateDatabase(0, out var blob))
-            using (var stmt = new Statement(db, $"SELECT data FROM t1", out var remain))
+            using (var stmt = db.Prepare($"SELECT data FROM t1"))
             {
-                Assert.AreEqual(SQLITE_ROW, sqlite3_step(stmt));
-                Assert.IsNull(sqlite3_column_blob(stmt, 0));
+                Assert.AreEqual(Status.Row, stmt.Step());
+                Assert.IsNull(stmt.Columns.GetBlob(0));
             }
         }
 #endregion
@@ -67,7 +68,7 @@ namespace SqliteNative.Tests
             using (var db = CreateDatabase(length, out var blob))
             {
                 var actual = new byte[length];
-                Assert.AreEqual(SQLITE_OK, sqlite3_blob_open(db, "main", "t1", "data", 1, 0, out var ppBlob));
+                Assert.AreEqual(SQLITE_OK, sqlite3_blob_open(db.Pointer, "main", "t1", "data", 1, 0, out var ppBlob));
                 Assert.AreEqual(SQLITE_OK, sqlite3_blob_read(ppBlob, actual, length, 0));
                 Assert.IsTrue(blob.SequenceEqual(actual));
                 sqlite3_blob_close(ppBlob);
@@ -79,7 +80,7 @@ namespace SqliteNative.Tests
         {
             const int length = 512;
             using (var db = CreateDatabase(length, out var data))
-            using (var blob = new Blob(db, "main", "t1", "data", 1))
+            using (var blob = new Blob(db.Pointer, "main", "t1", "data", 1))
             using (var stream = new MemoryStream())
             {
                 await blob.CopyToAsync(stream, 60);

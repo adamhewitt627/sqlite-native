@@ -7,7 +7,7 @@ namespace SqliteNative
 {
     public interface IStatement : IDisposable
     {
-        bool Step();
+        Status Step();
         bool Reset();
 
         IBindings Bindings { get; }
@@ -20,15 +20,15 @@ namespace SqliteNative
         private IntPtr _stmt;
         private Database _database;
 
-        public Statement(ILogger<Statement> logger, Database database, string sql, out string remaining)
+        public Statement(Database database, string sql, out string remaining, ILogger<Statement> logger = null)
         {
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _logger = logger;
             _database = database ?? throw new ArgumentNullException(nameof(database));
             Bindings = new BindingsInfo(this);
             Columns = new ColumnsInfo(this);
 
             if (!(sqlite3_prepare16_v2(database, sql, out _stmt, out remaining) is SQLITE_OK))
-                _logger.LogError(_database.Error.Message);
+                _logger?.LogError(_database.Error.Message);
         }
 
         public IBindings Bindings { get; }
@@ -38,13 +38,13 @@ namespace SqliteNative
         {
             var err = sqlite3_finalize(_stmt);
             if (err != SQLITE_OK && disposing)
-                _logger.LogError(_database.Error.Message);
+                _logger?.LogError(_database.Error.Message);
         }
 
         public static implicit operator IntPtr(Statement statement) => statement._stmt;
 
         public bool Reset() => sqlite3_reset(this) is SQLITE_OK;
-        public bool Step() => sqlite3_step(this) is SQLITE_OK;
+        public Status Step() => (Status)sqlite3_step(this);
 
         private class BindingsInfo : IBindings
         {
