@@ -25,6 +25,7 @@
       <PackagePath>runtimes/</PackagePath>
     </None>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="1.1.2" />
+    <PackageReference Include="System.ValueTuple" Version="4.4.0" />
   </ItemGroup>
 
   <Target Name="RestoreSQLite" AfterTargets="Restore">

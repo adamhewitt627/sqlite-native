@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using SqliteNative.Events;
 using SqliteNative.Util;
 using System;
 using System.IO;
@@ -23,6 +24,10 @@ namespace SqliteNative
         int Changes { get; }
         int TotalChanges { get; }
         long LastInsertedRowId { get; }
+
+        event EventHandler<(int, string, string, long)> OnUpdate;
+        event EventHandler<CommitEventArgs> OnCommit;
+        event EventHandler OnRollback;
     }
 
     internal class Database : Disposable, IDatabase
@@ -36,10 +41,66 @@ namespace SqliteNative
             _dbLogger = dbLogger;
             _stmtLogger = stmtLogger;
             Error = new ErrorInfo(this);
+
+            _updateHook = new Lazy<Callback<UpdateHook>>(() =>
+            {
+                var cb = new Callback<UpdateHook>(onUpdate);
+                sqlite3_update_hook(this, cb, IntPtr.Zero);
+                return cb;
+                void onUpdate(IntPtr context, int change, IntPtr dbName, IntPtr tableName, long rowid)
+                    => _onUpdate?.Invoke(this, (change, dbName.FromUtf8(), tableName.FromUtf8(), rowid));
+            });
+            _commitHook = new Lazy<Callback<CommitHook>>(() =>
+            {
+                var cb = new Callback<CommitHook>(onCommit);
+                sqlite3_commit_hook(this, cb, IntPtr.Zero);
+                return cb;
+
+                int onCommit(IntPtr context)
+                {
+                    var args = new CommitEventArgs();
+                    _onCommit?.Invoke(this, args);
+                    return args.Result;
+                }
+            });
+            _rollbackHook = new Lazy<Callback<RollbackHook>>(() =>
+            {
+                var cb = new Callback<RollbackHook>(onRollback);
+                sqlite3_rollback_hook(this, cb, IntPtr.Zero);
+                return cb;
+
+                void onRollback(IntPtr context) => _onRollback?.Invoke(this, EventArgs.Empty);
+            });
         }
 
         public IntPtr Handle => _db;
         public IError Error { get; }
+
+        #region Events
+        private event EventHandler<(int, string, string, long)> _onUpdate;
+        private readonly Lazy<Callback<UpdateHook>> _updateHook;
+        public event EventHandler<(int, string, string, long)> OnUpdate
+        {
+            add { var v = _updateHook.Value; _onUpdate += value; }
+            remove => _onUpdate -= value;
+        }
+
+        private event EventHandler _onRollback;
+        private readonly Lazy<Callback<RollbackHook>> _rollbackHook;
+        public event EventHandler OnRollback
+        {
+            add { var v = _rollbackHook.Value; _onRollback += value; }
+            remove { _onRollback -= value; }
+        }
+
+        private event EventHandler<CommitEventArgs> _onCommit;
+        private readonly Lazy<Callback<CommitHook>> _commitHook;
+        public event EventHandler<CommitEventArgs> OnCommit
+        {
+            add { var v = _commitHook.Value; _onCommit += value; }
+            remove => _onCommit -= value;
+        }
+        #endregion
 
         protected override void Dispose(bool disposing) => Close();
         public static implicit operator IntPtr(Database database) => database._db;

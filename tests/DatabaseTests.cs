@@ -1,4 +1,5 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using SqliteNative.Events;
 using SqliteNative.Tests;
 using SqliteNative.Util;
 using System;
@@ -61,19 +62,17 @@ namespace SqliteNative.Tests
             var called = false;
             var ctx = (IntPtr)(42);
             using (var db = new Sqlite3().OpenTest("CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)"))
-            using (var cb = new Callback<UpdateHook>(updateHook))
             {
-                Assert.AreEqual(IntPtr.Zero, sqlite3_update_hook(db.Handle, cb, ctx));
+                db.OnUpdate += updateHook;
                 Assert.IsTrue(db.Execute("INSERT INTO t1(name) VALUES('fizzbuzz')"));
             }
             Assert.IsTrue(called);
 
-            void updateHook(IntPtr context, int change, IntPtr dbName, IntPtr tableName, long rowid)
+            void updateHook(object sender, (int change, string dbName, string tableName, long rowid) args)
             {
                 called = true;
-                Assert.AreEqual(ctx, context);
-                Assert.AreEqual("main", dbName.FromUtf8());
-                Assert.AreEqual("t1", tableName.FromUtf8());
+                Assert.AreEqual("main", args.dbName);
+                Assert.AreEqual("t1", args.tableName);
             }
         }
 
@@ -83,21 +82,15 @@ namespace SqliteNative.Tests
             var called = false;
             var ctx = (IntPtr)(42);
             using (var db = new Sqlite3().OpenTest())
-            using (var cb = new Callback<CommitHook>(commitHook))
             {
-                Assert.AreEqual(IntPtr.Zero, sqlite3_commit_hook(db.Handle, cb, ctx));
+                db.OnCommit += commitHook;
                 Assert.IsTrue(db.Execute(string.Join(";", "BEGIN",
                     "CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)",
                     "COMMIT")));
             }
             Assert.IsTrue(called);
 
-            int commitHook(IntPtr context)
-            {
-                called = true;
-                Assert.AreEqual(ctx, context);
-                return 0;
-            }
+            void commitHook(object sender, CommitEventArgs args) => called = true;
         }
 
         [TestMethod]
@@ -106,23 +99,17 @@ namespace SqliteNative.Tests
             var called = false;
             var ctx = (IntPtr)(42);
             using (var db = new Sqlite3().OpenTest())
-            using (var commit = new Callback<CommitHook>(commitHook))
-            using (var rollback = new Callback<RollbackHook>(rollbackHook))
             {
-                Assert.AreEqual(IntPtr.Zero, sqlite3_commit_hook(db.Handle, commit, ctx));
-                Assert.AreEqual(IntPtr.Zero, sqlite3_rollback_hook(db.Handle, rollback, ctx));
+                db.OnCommit += commitHook;
+                db.OnRollback += rollbackHook;
                 db.Execute(string.Join(";", "BEGIN",
                     "CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)",
                     "COMMIT"));
             }
             Assert.IsTrue(called);
 
-            int commitHook(IntPtr context) => 7;
-            void rollbackHook(IntPtr context)
-            {
-                called = true;
-                Assert.AreEqual(ctx, context);
-            }
+            void commitHook(object sender, CommitEventArgs args) => args.Result = 7;
+            void rollbackHook(object sender, EventArgs args) => called = true;
         }
 
         [DataTestMethod]    //TODO - still haven't gotten this to work
