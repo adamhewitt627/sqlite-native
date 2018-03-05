@@ -65,12 +65,11 @@ namespace SqliteNative.Tests
         {
             const int length = 512;
             using (var db = CreateDatabase(length, out var blob))
+            using (var blobIO = db.OpenBlob("main", "t1", "data", 1, 0))
             {
                 var actual = new byte[length];
-                Assert.AreEqual(SQLITE_OK, sqlite3_blob_open(db.Handle, "main", "t1", "data", 1, 0, out var ppBlob));
-                Assert.AreEqual(SQLITE_OK, sqlite3_blob_read(ppBlob, actual, length, 0));
+                Assert.AreEqual(length, blobIO.Read(actual, 0, length));
                 Assert.IsTrue(blob.SequenceEqual(actual));
-                sqlite3_blob_close(ppBlob);
             }
         }
 
@@ -79,7 +78,7 @@ namespace SqliteNative.Tests
         {
             const int length = 512;
             using (var db = CreateDatabase(length, out var data))
-            using (var blob = new Blob(db.Handle, "main", "t1", "data", 1))
+            using (var blob = db.OpenBlob("main", "t1", "data", 1))
             using (var stream = new MemoryStream())
             {
                 await blob.CopyToAsync(stream, 60);
@@ -102,7 +101,7 @@ namespace SqliteNative.Tests
                 var expected = new byte[length];
                 new Random().NextBytes(expected);
 
-                using (var blob = new Blob(db.Handle, "main", "t1", "data", 1, 1))
+                using (var blob = db.OpenBlob("main", "t1", "data", 1, 1))
                 using (var stream = new MemoryStream(expected))
                     await stream.CopyToAsync(blob, 60);
 

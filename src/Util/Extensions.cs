@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Text;
+using static SqliteNative.Sqlite3;
 
 namespace SqliteNative.Util
 {
@@ -22,6 +23,7 @@ namespace SqliteNative.Util
                 return utf8;
             }
         }
+
         public static unsafe string FromUtf8(this IntPtr utf8)
         {
             if (@utf8 == IntPtr.Zero) return null;
@@ -36,6 +38,28 @@ namespace SqliteNative.Util
             fixed (char* resultPtr = result)
                 Encoding.UTF8.GetChars(bytes, byteCount, resultPtr, charCount);
             return result;
+        }
+
+        public static bool BackupTo(this Database source, Database destination, int stepSize = -1, IProgress<double> progress = null)
+        {
+            try
+            {
+                using (var backup = new Backup(source, destination))
+                {
+                    progress?.Report(0);
+                    while (backup.Step(stepSize))
+                    {
+                        if (progress == null) continue;
+                        var total = backup.PageCount;
+                        var remaining = backup.Remaining;
+                        progress.Report((total - remaining) / (double)remaining);
+                    }
+                    progress?.Report(1);
+                }
+
+                return true;
+            }
+            catch { return false; }
         }
     }
 }

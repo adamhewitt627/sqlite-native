@@ -1,5 +1,4 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SqliteNative.Events;
 using SqliteNative.Tests;
 using SqliteNative.Util;
 using System;
@@ -60,19 +59,18 @@ namespace SqliteNative.Tests
         public void CallsUpdateCallback()
         {
             var called = false;
-            var ctx = (IntPtr)(42);
             using (var db = new Sqlite3().OpenTest("CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)"))
             {
-                db.OnUpdate += updateHook;
+                db.UpdateHandler = updateHook;
                 Assert.IsTrue(db.Execute("INSERT INTO t1(name) VALUES('fizzbuzz')"));
             }
             Assert.IsTrue(called);
 
-            void updateHook(object sender, (int change, string dbName, string tableName, long rowid) args)
+            void updateHook(int change, string dbName, string tableName, long rowid)
             {
                 called = true;
-                Assert.AreEqual("main", args.dbName);
-                Assert.AreEqual("t1", args.tableName);
+                Assert.AreEqual("main", dbName);
+                Assert.AreEqual("t1", tableName);
             }
         }
 
@@ -80,36 +78,34 @@ namespace SqliteNative.Tests
         public void CallsCommit()
         {
             var called = false;
-            var ctx = (IntPtr)(42);
             using (var db = new Sqlite3().OpenTest())
             {
-                db.OnCommit += commitHook;
+                db.CommitHandler = commitHook;
                 Assert.IsTrue(db.Execute(string.Join(";", "BEGIN",
                     "CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)",
                     "COMMIT")));
             }
             Assert.IsTrue(called);
 
-            void commitHook(object sender, CommitEventArgs args) => called = true;
+            int commitHook() { called = true; return 0; };
         }
 
         [TestMethod]
         public void CallsRollback()
         {
             var called = false;
-            var ctx = (IntPtr)(42);
             using (var db = new Sqlite3().OpenTest())
             {
-                db.OnCommit += commitHook;
-                db.OnRollback += rollbackHook;
+                db.CommitHandler = commitHook;
+                db.RollbackHandler = rollbackHook;
                 db.Execute(string.Join(";", "BEGIN",
                     "CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)",
                     "COMMIT"));
             }
             Assert.IsTrue(called);
 
-            void commitHook(object sender, CommitEventArgs args) => args.Result = 7;
-            void rollbackHook(object sender, EventArgs args) => called = true;
+            int commitHook() => 7;
+            void rollbackHook() => called = true;
         }
 
         [DataTestMethod]    //TODO - still haven't gotten this to work
@@ -118,26 +114,23 @@ namespace SqliteNative.Tests
         public void InvokesBusyHandler(int busyCallCount)
         {
             var called = false;
-            var ctx = (IntPtr)(42);
 
             var path = Path.GetTempFileName();
             var sqlite = new Sqlite3();
             using (var db1 = sqlite.OpenTest(path, OpenFlags.ReadWrite | OpenFlags.Create, "BEGIN IMMEDIATE TRANSACTION"))
-            using (var callback = new Callback<BusyHandler>(busyHandler))
             using (var db2 = sqlite.OpenTest(path, OpenFlags.ReadWrite))
             {
-                sqlite3_busy_handler(db2.Handle, callback, ctx);
+                db2.BusyHandler = busyHandler;
                 using (var stms = db2.Prepare("BEGIN IMMEDIATE TRANSACTION"))
                     Assert.AreEqual(Status.Busy, stms.Step());
             }
             Assert.IsTrue(called);
             File.Delete(path);
 
-            int busyHandler(IntPtr context, int callCount)
+            int busyHandler(int callCount)
             {
                 if (callCount < busyCallCount) return 1;
                 called = true;
-                Assert.AreEqual(ctx, context);
                 return 0;
             }
         }
@@ -146,21 +139,18 @@ namespace SqliteNative.Tests
         public void LogsWALCommit()
         {
             var called = false;
-            var ctx = (IntPtr)(42);
             var path = Path.GetTempFileName();
             using (var db = new Sqlite3().OpenTest(path, OpenFlags.ReadWrite | OpenFlags.Create, "PRAGMA journal_mode=WAL"))
-            using (var callback = new Callback<WriteAheadLogHook>(walHook))
             {
-                sqlite3_wal_hook(db.Handle, callback, ctx);
+                db.WalHandler = walHook;
                 Assert.IsTrue(db.Execute("CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)"));
             }
             Assert.IsTrue(called);
             File.Delete(path);
 
-            int walHook(IntPtr context, IntPtr db, IntPtr dbName, int pages)
+            int walHook(IDatabase db, string dbName, int pages)
             {
                 called = true;
-                Assert.AreEqual(ctx, context);
                 return SQLITE_OK;
             }
         }

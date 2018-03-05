@@ -20,7 +20,7 @@ namespace SqliteNative
         IColumns Columns { get; }
     }
 
-    internal class Statement : Disposable, IStatement
+    public class Statement : Disposable, IStatement
     {
         private readonly ILogger<Statement> _logger;
         private IntPtr _stmt;

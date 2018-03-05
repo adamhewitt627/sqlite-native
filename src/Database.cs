@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using SqliteNative.Events;
 using SqliteNative.Util;
 using System;
 using System.IO;
@@ -9,29 +8,27 @@ namespace SqliteNative
 {
     public interface IDatabase : IDisposable
     {
-        /// <summary>
-        /// In general this shouldn't be needed, but is exposed as a convenience to access the
-        /// SQLite API directly, especially where a more object-oriented approach hasn't been built.
-        /// </summary>
-        IntPtr Handle { get; }
-
         IStatement Prepare(string sql);
         IStatement Prepare(string sql, out string remaining);
         bool Execute(string sql);
 
         IError Error { get; }
+        Stream OpenBlob(string dbName, string tableName, string columnName, long rowid, int flags = 0);
         
         int Changes { get; }
         int TotalChanges { get; }
         long LastInsertedRowId { get; }
 
-        event EventHandler<(int, string, string, long)> OnUpdate;
-        event EventHandler<CommitEventArgs> OnCommit;
-        event EventHandler OnRollback;
+        Func<int, int> BusyHandler { set; }
+        Action<int, string, string, long> UpdateHandler { set; }
+        Action RollbackHandler { set; }
+        Func<int> CommitHandler { set; }
+        Func<IDatabase, string, int, int> WalHandler { set; }
     }
 
-    internal class Database : Disposable, IDatabase
+    public class Database : Disposable, IDatabase
     {
+        private readonly object _lock = new object();
         private readonly ILogger<Database> _dbLogger;
         private readonly ILogger<Statement> _stmtLogger;
         private IntPtr _db;
@@ -41,64 +38,61 @@ namespace SqliteNative
             _dbLogger = dbLogger;
             _stmtLogger = stmtLogger;
             Error = new ErrorInfo(this);
-
-            _updateHook = new Lazy<Callback<UpdateHook>>(() =>
-            {
-                var cb = new Callback<UpdateHook>(onUpdate);
-                sqlite3_update_hook(this, cb, IntPtr.Zero);
-                return cb;
-                void onUpdate(IntPtr context, int change, IntPtr dbName, IntPtr tableName, long rowid)
-                    => _onUpdate?.Invoke(this, (change, dbName.FromUtf8(), tableName.FromUtf8(), rowid));
-            });
-            _commitHook = new Lazy<Callback<CommitHook>>(() =>
-            {
-                var cb = new Callback<CommitHook>(onCommit);
-                sqlite3_commit_hook(this, cb, IntPtr.Zero);
-                return cb;
-
-                int onCommit(IntPtr context)
-                {
-                    var args = new CommitEventArgs();
-                    _onCommit?.Invoke(this, args);
-                    return args.Result;
-                }
-            });
-            _rollbackHook = new Lazy<Callback<RollbackHook>>(() =>
-            {
-                var cb = new Callback<RollbackHook>(onRollback);
-                sqlite3_rollback_hook(this, cb, IntPtr.Zero);
-                return cb;
-
-                void onRollback(IntPtr context) => _onRollback?.Invoke(this, EventArgs.Empty);
-            });
         }
 
-        public IntPtr Handle => _db;
         public IError Error { get; }
 
         #region Events
-        private event EventHandler<(int, string, string, long)> _onUpdate;
-        private readonly Lazy<Callback<UpdateHook>> _updateHook;
-        public event EventHandler<(int, string, string, long)> OnUpdate
+        private Callback<UpdateHook> _updateHook;
+        public Action<int, string, string, long> UpdateHandler
         {
-            add { var v = _updateHook.Value; _onUpdate += value; }
-            remove => _onUpdate -= value;
+            set
+            {
+                sqlite3_update_hook(this, _updateHook = new Callback<UpdateHook>(onUpdate), IntPtr.Zero);
+                void onUpdate(IntPtr context, int change, IntPtr dbName, IntPtr tableName, long rowid)
+                    => value(change, dbName.FromUtf8(), tableName.FromUtf8(), rowid);
+            }
         }
 
-        private event EventHandler _onRollback;
-        private readonly Lazy<Callback<RollbackHook>> _rollbackHook;
-        public event EventHandler OnRollback
+        private Callback<RollbackHook> _rollbackHook;
+        public Action RollbackHandler
         {
-            add { var v = _rollbackHook.Value; _onRollback += value; }
-            remove { _onRollback -= value; }
+            set
+            {
+                sqlite3_rollback_hook(this, _rollbackHook = new Callback<RollbackHook>(handler), IntPtr.Zero);
+                void handler(IntPtr context) => value();
+            }
         }
 
-        private event EventHandler<CommitEventArgs> _onCommit;
-        private readonly Lazy<Callback<CommitHook>> _commitHook;
-        public event EventHandler<CommitEventArgs> OnCommit
+        private Callback<CommitHook> _commitHook;
+        public Func<int> CommitHandler
         {
-            add { var v = _commitHook.Value; _onCommit += value; }
-            remove => _onCommit -= value;
+            set
+            {
+                sqlite3_commit_hook(this, _commitHook = new Callback<CommitHook>(onCommit), IntPtr.Zero);
+                int onCommit(IntPtr context) => value();
+            }
+        }
+
+        private Callback<BusyHandler> _busyHook;
+        public Func<int, int> BusyHandler
+        {
+            set
+            {
+                sqlite3_busy_handler(this, _busyHook = new Callback<BusyHandler>(onBusy), IntPtr.Zero);
+                int onBusy(IntPtr context, int lockCount) => value(lockCount);
+            }
+        }
+
+        private Callback<WriteAheadLogHook> _walHook;
+        public Func<IDatabase, string, int, int> WalHandler
+        {
+            set
+            {
+                sqlite3_wal_hook(this, _walHook = new Callback<WriteAheadLogHook>(onWalHook), IntPtr.Zero);
+                int onWalHook(IntPtr context, IntPtr db, IntPtr dbName, int pageCount)
+                    => value(this, dbName.FromUtf8(), pageCount);
+            }
         }
         #endregion
 
@@ -133,6 +127,8 @@ namespace SqliteNative
         public int TotalChanges => sqlite3_total_changes(this);
         public long LastInsertedRowId => sqlite3_last_insert_rowid(this);
 
+        public Stream OpenBlob(string dbName, string tableName, string columnName, long rowid, int flags = 0)
+            => new Blob(this, dbName, tableName, columnName, rowid, flags);
 
         private class ErrorInfo : IError
         {
