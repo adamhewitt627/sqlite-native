@@ -94,7 +94,7 @@ namespace SqliteNative.Tests
             {
                 using (var stmt = db.Prepare($"INSERT INTO t1(data) VALUES(?)"))
                 {
-                    Assert.AreEqual(SQLITE_OK, sqlite3_bind_zeroblob(stmt.Handle, 1, length));
+                    Assert.IsTrue(stmt.Bindings.SetBlob(1, length));
                     Assert.AreEqual(Status.Done, stmt.Step());
                 }
 

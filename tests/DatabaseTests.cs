@@ -61,7 +61,7 @@ namespace SqliteNative.Tests
             var called = false;
             using (var db = new Sqlite3().OpenTest("CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)"))
             {
-                db.UpdateHandler = updateHook;
+                db.Hooks.Update = updateHook;
                 Assert.IsTrue(db.Execute("INSERT INTO t1(name) VALUES('fizzbuzz')"));
             }
             Assert.IsTrue(called);
@@ -80,7 +80,7 @@ namespace SqliteNative.Tests
             var called = false;
             using (var db = new Sqlite3().OpenTest())
             {
-                db.CommitHandler = commitHook;
+                db.Hooks.Commit = commitHook;
                 Assert.IsTrue(db.Execute(string.Join(";", "BEGIN",
                     "CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)",
                     "COMMIT")));
@@ -96,8 +96,8 @@ namespace SqliteNative.Tests
             var called = false;
             using (var db = new Sqlite3().OpenTest())
             {
-                db.CommitHandler = commitHook;
-                db.RollbackHandler = rollbackHook;
+                db.Hooks.Commit = commitHook;
+                db.Hooks.Rollback = rollbackHook;
                 db.Execute(string.Join(";", "BEGIN",
                     "CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)",
                     "COMMIT"));
@@ -120,7 +120,7 @@ namespace SqliteNative.Tests
             using (var db1 = sqlite.OpenTest(path, OpenFlags.ReadWrite | OpenFlags.Create, "BEGIN IMMEDIATE TRANSACTION"))
             using (var db2 = sqlite.OpenTest(path, OpenFlags.ReadWrite))
             {
-                db2.BusyHandler = busyHandler;
+                db2.Hooks.Busy = busyHandler;
                 using (var stms = db2.Prepare("BEGIN IMMEDIATE TRANSACTION"))
                     Assert.AreEqual(Status.Busy, stms.Step());
             }
@@ -142,7 +142,7 @@ namespace SqliteNative.Tests
             var path = Path.GetTempFileName();
             using (var db = new Sqlite3().OpenTest(path, OpenFlags.ReadWrite | OpenFlags.Create, "PRAGMA journal_mode=WAL"))
             {
-                db.WalHandler = walHook;
+                db.Hooks.Wal = walHook;
                 Assert.IsTrue(db.Execute("CREATE TABLE t1(id INTEGER PRIMARY KEY, name TEXT)"));
             }
             Assert.IsTrue(called);
