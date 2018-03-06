@@ -1,7 +1,5 @@
 ﻿using SqliteNative.Util;
 using System;
-using System.Collections.Generic;
-using System.Text;
 using static SqliteNative.Sqlite3;
 
 namespace SqliteNative

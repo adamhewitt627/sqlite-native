@@ -18,6 +18,15 @@ namespace SqliteNative
         ColumnType GetType(int index);
     }
 
+    public enum ColumnType
+    {
+        Integer = SQLITE_INTEGER,
+        Float = SQLITE_FLOAT,
+        Text = SQLITE_TEXT,
+        Blob = SQLITE_BLOB,
+        Null = SQLITE_NULL,
+    }
+
     public class Columns : IColumns
     {
         private readonly Statement _statement;
