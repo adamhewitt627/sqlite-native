@@ -14,7 +14,7 @@ nuget:
 build_script:
 - ps: dotnet pack -c release src
 test_script:
-- ps: dotnet test -c release tests
+- ps: dotnet test -c release tests -r testResults
 artifacts:
 - path: '**\*.nupkg'
 deploy: off
