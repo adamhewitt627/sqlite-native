@@ -14,7 +14,8 @@ nuget:
 build_script:
 - ps: dotnet pack -c release src
 test_script:
-- ps: dotnet test -c release tests -r testResults
+- ps: dotnet test -c release tests -r testResults -l trx
+- ps: $wc = New-Object 'System.Net.WebClient'; Get-ChildItem -Recurse *.trx | % { Resolve-Path $_ } | % { $wc.UploadFile("https://ci.appveyor.com/api/testresults/mstest/$($env:APPVEYOR_JOB_ID)", $_) }
 artifacts:
 - path: '**\*.nupkg'
 deploy: off
