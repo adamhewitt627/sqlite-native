@@ -7,7 +7,7 @@
     <LangVersion>latest</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
-    <Version>3.21.0</Version>
+    <Version>3.23.1</Version>
     <PackageId>SqliteNative.NET</PackageId>
     <Authors>Adam Hewitt</Authors>
     <PackageProjectUrl>https://github.com/adamhewitt627/sqlite-native</PackageProjectUrl>
