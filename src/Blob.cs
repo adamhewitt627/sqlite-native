@@ -7,7 +7,7 @@ namespace SqliteNative
     public class Blob : Stream
     {
         private readonly bool _writable;
-        private readonly IntPtr _ppBlob;
+        private IntPtr _ppBlob;
 
         public Blob(IntPtr db, string zDb, string zTable, string zColumn, long iRow, int flags = 0)
         {
@@ -16,7 +16,11 @@ namespace SqliteNative
             
             _writable = flags != 0 && Length > 0;
         }
-        protected override void Dispose(bool disposing) => sqlite3_blob_close(_ppBlob);
+        protected override void Dispose(bool disposing)
+        {
+            sqlite3_blob_close(_ppBlob);
+            _ppBlob = IntPtr.Zero;
+        }
 
         public unsafe override int Read(byte[] buffer, int offset, int count)
         {
