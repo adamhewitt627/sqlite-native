@@ -56,12 +56,15 @@ namespace SqliteNative
 #region Binding Values To Prepared Statements
         //https://sqlite.org/c3ref/bind_blob.html
         [DllImport(SQLITE3, CallingConvention=Cdecl)] private unsafe static extern int sqlite3_bind_blob(IntPtr stmt, int index, byte* value, int byteCount, IntPtr pvReserved);
-        public unsafe static int sqlite3_bind_blob(IntPtr stmt, int index, byte[] value, int byteCount)
+        public static int sqlite3_bind_blob(IntPtr stmt, int index, byte[] value)
+            => sqlite3_bind_blob(stmt, index, value, value.Length);
+        public static int sqlite3_bind_blob(IntPtr stmt, int index, byte[] value, int byteCount)
+            => sqlite3_bind_blob(stmt, index, value, byteCount, SQLITE_TRANSIENT);
+        public unsafe static int sqlite3_bind_blob(IntPtr stmt, int index, byte[] value, int byteCount, IntPtr pvReserved)
         {
             fixed (byte* data = value)
-                return sqlite3_bind_blob(stmt, index, data, byteCount, SQLITE_TRANSIENT);
+                return sqlite3_bind_blob(stmt, index, data, byteCount, pvReserved);
         }
-        public static int sqlite3_bind_blob(IntPtr stmt, int index, byte[] value) => sqlite3_bind_blob(stmt, index, value, value.Length);
 
         [DllImport(SQLITE3, CallingConvention=Cdecl)] public static extern int sqlite3_bind_null(IntPtr stmt, int index);
         [DllImport(SQLITE3, CallingConvention=Cdecl)] public static extern int sqlite3_bind_int64(IntPtr stmt, int index, long value);
