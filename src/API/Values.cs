@@ -15,6 +15,9 @@ namespace SqliteNative
             return result;
         }
 
+        [DllImport(SQLITE3, CallingConvention=Cdecl)] public static extern IntPtr sqlite3_value_dup(IntPtr value);
+        [DllImport(SQLITE3, CallingConvention=Cdecl)] public static extern void sqlite3_value_free(IntPtr value);
+
         //https://sqlite.org/c3ref/value_blob.html
         [DllImport(SQLITE3, CallingConvention=Cdecl, EntryPoint = nameof(sqlite3_value_blob))] private unsafe static extern byte* value_blob(IntPtr value);
         public unsafe static byte[] sqlite3_value_blob(IntPtr value)
