@@ -1,4 +1,4 @@
-version: 3.24.0.{build}
+version: 3.26.0.{build}
 image: Visual Studio 2017
 configuration: Release
 dotnet_csproj:
