@@ -59,8 +59,9 @@ namespace SqliteNative
         [DllImport(SQLITE3, CallingConvention=Cdecl, EntryPoint = nameof(sqlite3_errmsg))] private static extern IntPtr errmsg(IntPtr db);
         public static string sqlite3_errmsg(IntPtr db) => errmsg(db).FromUtf8();
         public static string sqlite3_errmsg16(IntPtr db) => sqlite3_errmsg(db);
-        [DllImport(SQLITE3, CallingConvention=Cdecl, EntryPoint = nameof(sqlite3_errstr))] private static extern IntPtr errstr(IntPtr db);
-        public static string sqlite3_errstr(IntPtr db) => errstr(db).FromUtf8();
+        
+        [DllImport(SQLITE3, CallingConvention=Cdecl, EntryPoint = nameof(sqlite3_errstr))] private static extern IntPtr errstr(int code);
+        public static string sqlite3_errstr(int code) => errstr(code).FromUtf8();
 #endregion
 
 #region Commit And Rollback Notification Callbacks
