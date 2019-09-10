@@ -4,16 +4,16 @@
   <!-- <AndroidSupportedAbis>armeabi-v7a;x86;x86_64;arm64-v8a</AndroidSupportedAbis> -->
 
   <ItemGroup>
-    <AndroidNativeLibrary Include="$(MSBuildThisFileDirectory)/armeabi-v7a/libsqlite3.so">
+    <AndroidNativeLibrary Include="$(MSBuildThisFileDirectory)/armeabi-v7a/libsqlite.so">
       <Abi>armeabi-v7a</Abi>
     </AndroidNativeLibrary>
-    <AndroidNativeLibrary Include="$(MSBuildThisFileDirectory)/x86/libsqlite3.so">
+    <AndroidNativeLibrary Include="$(MSBuildThisFileDirectory)/x86/libsqlite.so">
       <Abi>x86</Abi>
     </AndroidNativeLibrary>
-    <AndroidNativeLibrary Include="$(MSBuildThisFileDirectory)/x86_64/libsqlite3.so">
+    <AndroidNativeLibrary Include="$(MSBuildThisFileDirectory)/x86_64/libsqlite.so">
       <Abi>x86_64</Abi>
     </AndroidNativeLibrary>
-    <AndroidNativeLibrary Include="$(MSBuildThisFileDirectory)/arm64-v8a/libsqlite3.so">
+    <AndroidNativeLibrary Include="$(MSBuildThisFileDirectory)/arm64-v8a/libsqlite.so">
       <Abi>arm64-v8a</Abi>
     </AndroidNativeLibrary>
   </ItemGroup>
