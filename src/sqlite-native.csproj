@@ -11,7 +11,7 @@
     <PackageId>SqliteNative.NET</PackageId>
     <Authors>Adam Hewitt</Authors>
     <PackageProjectUrl>https://github.com/adamhewitt627/sqlite-native</PackageProjectUrl>
-    <PackageLicenseUrl>https://github.com/adamhewitt627/sqlite-native/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <Description>Lightweight .NET library wrapping SQLite's C API without the overhead of a more object-oriented API. Those aren't bad, but this is meant to package the native library directly and let other libraries build a more idiomatic framework.</Description>
   </PropertyGroup>
 
@@ -24,6 +24,7 @@
       <Pack>true</Pack>
       <PackagePath>runtimes/</PackagePath>
     </None>
+    <None Include="..\LICENSE" Pack="true" PackagePath="" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="1.1.2" />
     <PackageReference Include="System.ValueTuple" Version="4.4.0" />
   </ItemGroup>

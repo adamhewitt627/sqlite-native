@@ -2,7 +2,7 @@ try {
     # Based on https://stackoverflow.com/questions/40104838/automatic-native-and-managed-dlls-extracting-from-nuget-package
     Push-Location $PSScriptRoot
     $buildVersion = [version]([regex]"version: (\d+.\d+.\d+)").Match((Get-Content ..\appveyor.yml -Raw)).Groups[1].Value
-    $version = @($buildVersion.Major.ToString(), $buildVersion.Minor.ToString().PadRight(3,'0'), $buildVersion.Build.ToString().PadRight(3,'0')) -join ""
+    $version = "$($buildVersion.Major)$($buildVersion.Minor.ToString().PadRight(3,'0'))$($buildVersion.Build.ToString().PadRight(3,'0'))"
 
     $year = (Get-Date).Year
     do { try {
@@ -27,6 +27,15 @@ try {
         Get-ChildItem sqlite\Redist\Retail | ForEach-Object {
             $dest = New-Item "runtimes\win10-$($_.Name.ToLowerInvariant())\native" -ItemType Directory -Force
             Move-Item (Join-Path $_.FullName sqlite3.dll) -Destination $dest -Force
+        }
+    <##>}
+
+    &{ #<#  Android
+        Invoke-WebRequest https://sqlite.org/$year/sqlite-android-$version.aar -OutFile sqlite.zip
+        Expand-Archive .\sqlite.zip -Force
+        Get-ChildItem sqlite\jni\**\libsqliteX.so | ForEach-Object {
+            $dest = New-Item "build\MonoAndroid10\$($_.Directory.Name)" -ItemType Directory -Force
+            Move-Item $_ -Destination (Join-Path $dest libsqlite3.so) -Force
         }
     <##>}
 
