@@ -5,7 +5,7 @@ namespace SqliteNative
 {
     partial class Sqlite3
     {
-        public const string SQLITE3 = "sqlite3";    //DllImport name
+        public const string SQLITE3 = "e_sqlite3";    //DllImport name
         static Sqlite3() => Debug.WriteLine($"Using SQLite version {sqlite3_libversion()}");
 
         public const int SQLITE_ERROR = 1;

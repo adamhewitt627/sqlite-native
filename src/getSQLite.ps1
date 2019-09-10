@@ -15,7 +15,7 @@ try {
             Invoke-WebRequest https://sqlite.org/$year/sqlite-dll-$win-$arch-$version.zip -OutFile sqlite.zip
             Expand-Archive .\sqlite.zip -Force
             $dest = New-Item "runtimes\win-$arch\native" -ItemType Directory -Force
-            Move-Item "sqlite\sqlite3.dll" -Destination $dest -Force
+            Move-Item "sqlite\sqlite3.dll" -Destination (Join-Path $dest e_sqlite3.dll) -Force
         }
         Get-Win32 win32 x86
         Get-Win32 win64 x64
@@ -26,7 +26,7 @@ try {
         Expand-Archive .\sqlite.zip -Force
         Get-ChildItem sqlite\Redist\Retail | ForEach-Object {
             $dest = New-Item "runtimes\win10-$($_.Name.ToLowerInvariant())\native" -ItemType Directory -Force
-            Move-Item (Join-Path $_.FullName sqlite3.dll) -Destination $dest -Force
+            Move-Item (Join-Path $_.FullName sqlite3.dll) -Destination (Join-Path $dest e_sqlite3.dll) -Force
         }
     <##>}
 
@@ -35,7 +35,7 @@ try {
         Expand-Archive .\sqlite.zip -Force
         Get-ChildItem sqlite\jni\**\libsqliteX.so | ForEach-Object {
             $dest = New-Item "build\MonoAndroid10\$($_.Directory.Name)" -ItemType Directory -Force
-            Move-Item $_ -Destination (Join-Path $dest libsqlite.so) -Force
+            Move-Item $_ -Destination (Join-Path $dest libe_sqlite3.so) -Force
         }
     <##>}
 
