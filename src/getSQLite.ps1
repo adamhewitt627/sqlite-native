@@ -35,7 +35,7 @@ try {
         Expand-Archive .\sqlite.zip -Force
         Get-ChildItem sqlite\jni\**\libsqliteX.so | ForEach-Object {
             $dest = New-Item "build\MonoAndroid10\$($_.Directory.Name)" -ItemType Directory -Force
-            Move-Item $_ -Destination $dest -Force
+            Move-Item $_ -Destination (Join-Path $dest libsqlite3.so) -Force
         }
     <##>}
 
