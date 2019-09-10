@@ -3,11 +3,11 @@
   <!-- https://stackoverflow.com/questions/40104838/automatic-native-and-managed-dlls-extracting-from-nuget-package -->
 
   <ItemGroup>
-    <Content Include="$(MSBuildThisFileDirectory)..\..\runtimes\win-x86\native\sqlite3.dll">
+    <Content Include="$(MSBuildThisFileDirectory)..\..\runtimes\win-x86\native\e_sqlite3.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>x86\e_sqlite3.dll</Link>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)..\..\runtimes\win-x64\native\sqlite3.dll">
+    <Content Include="$(MSBuildThisFileDirectory)..\..\runtimes\win-x64\native\e_sqlite3.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>x64\e_sqlite3.dll</Link>
     </Content>

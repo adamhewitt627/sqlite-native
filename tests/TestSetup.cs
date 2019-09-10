@@ -16,7 +16,7 @@ namespace SqliteNative.Tests
         {
             string @base = System.IO.Path.GetDirectoryName(new Uri(typeof(TestSetup).GetTypeInfo().Assembly.CodeBase).LocalPath),
                 bitness = IntPtr.Size == 8 ? "x64" : "x86",
-                file = $@"{bitness}\sqlite3.dll";
+                file = $@"{bitness}\e_sqlite3.dll";
             var lib = LoadLibrary(System.IO.Path.Combine(@base, file));
             Assert.AreNotEqual(lib, IntPtr.Zero);
         }
